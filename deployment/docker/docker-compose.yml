@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dantaro-postgres
+    environment:
+      POSTGRES_DB: dantaro_central
+      POSTGRES_USER: dantaro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dantaro_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dantaro -d dantaro_central"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dantaro-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+  # Analysis Worker
+  worker:
+    build:
+      context: ../backend
+      dockerfile: ../deployment/docker/Dockerfile.worker
+    container_name: dantaro-worker
+    environment:
+      - DATABASE_URL=postgresql://dantaro:${POSTGRES_PASSWORD:-dantaro_password}@postgres:5432/dantaro_central
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - worker_logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+  # API Server
+  api:
+    build:
+      context: ../backend
+      dockerfile: ../deployment/docker/Dockerfile.api
+    container_name: dantaro-api
+    environment:
+      - DATABASE_URL=postgresql://dantaro:${POSTGRES_PASSWORD:-dantaro_password}@postgres:5432/dantaro_central
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - USER_SERVER_API_KEY=${USER_SERVER_API_KEY:-development-user-server-key}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - api_logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: dantaro-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  worker_logs:
+  api_logs:
+
+networks:
+  default:
+    name: dantaro-network

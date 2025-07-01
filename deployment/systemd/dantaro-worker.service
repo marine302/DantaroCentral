@@ -1,0 +1,31 @@
+[Unit]
+Description=Dantaro Central Analysis Worker
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=dantaro
+Group=dantaro
+WorkingDirectory=/opt/dantaro-central/backend
+Environment=PATH=/opt/dantaro-central/venv/bin
+ExecStart=/opt/dantaro-central/venv/bin/python analysis_worker.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dantaro-worker
+
+# Resource limits
+MemoryMax=2G
+CPUQuota=80%
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/dantaro-central
+
+[Install]
+WantedBy=multi-user.target

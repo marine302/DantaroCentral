@@ -1,0 +1,31 @@
+[Unit]
+Description=Dantaro Central API Server
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=dantaro
+Group=dantaro
+WorkingDirectory=/opt/dantaro-central/backend
+Environment=PATH=/opt/dantaro-central/venv/bin
+ExecStart=/opt/dantaro-central/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dantaro-api
+
+# Resource limits
+MemoryMax=1G
+CPUQuota=50%
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/dantaro-central
+
+[Install]
+WantedBy=multi-user.target
