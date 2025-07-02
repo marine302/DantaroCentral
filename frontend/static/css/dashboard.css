@@ -1,0 +1,286 @@
+/* Dantaro Central Dashboard CSS */
+
+/* 기본 스타일 */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* 카드 스타일 */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px 12px 0 0 !important;
+}
+
+/* 테이블 스타일 */
+.table-dark {
+    --bs-table-bg: transparent;
+}
+
+.table-hover > tbody > tr:hover > td {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.table thead th {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+/* 가격 변화 애니메이션 */
+.price-up {
+    background-color: rgba(40, 167, 69, 0.3) !important;
+    transition: background-color 0.5s ease;
+}
+
+.price-down {
+    background-color: rgba(220, 53, 69, 0.3) !important;
+    transition: background-color 0.5s ease;
+}
+
+.price-neutral {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    transition: background-color 0.5s ease;
+}
+
+/* 스프레드 및 프리미엄 색상 */
+.spread-high {
+    color: #28a745 !important;
+    font-weight: bold;
+}
+
+.spread-medium {
+    color: #ffc107 !important;
+    font-weight: bold;
+}
+
+.spread-low {
+    color: #6c757d !important;
+}
+
+.premium-positive {
+    color: #17a2b8 !important;
+    font-weight: bold;
+}
+
+.premium-negative {
+    color: #dc3545 !important;
+    font-weight: bold;
+}
+
+/* 배지 스타일 */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.5em 0.75em;
+}
+
+.badge-exchange {
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+    border-radius: 4px;
+}
+
+.exchange-okx { background-color: #1890ff !important; }
+.exchange-upbit { background-color: #1976d2 !important; }
+.exchange-coinone { background-color: #4caf50 !important; }
+.exchange-gate { background-color: #9c27b0 !important; }
+
+/* 연결 상태 */
+.connection-status {
+    position: relative;
+}
+
+.connection-status.connected::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -8px;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background: #28a745;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.connection-status.disconnected::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -8px;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background: #dc3545;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; transform: translateY(-50%) scale(1); }
+    50% { opacity: 0.5; transform: translateY(-50%) scale(1.2); }
+    100% { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+/* 차트 컨테이너 */
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+/* 로그 스타일 */
+.log-entry {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border-left: 3px solid;
+    font-size: 0.9rem;
+}
+
+.log-info {
+    background: rgba(23, 162, 184, 0.1);
+    border-left-color: #17a2b8;
+}
+
+.log-success {
+    background: rgba(40, 167, 69, 0.1);
+    border-left-color: #28a745;
+}
+
+.log-warning {
+    background: rgba(255, 193, 7, 0.1);
+    border-left-color: #ffc107;
+}
+
+.log-error {
+    background: rgba(220, 53, 69, 0.1);
+    border-left-color: #dc3545;
+}
+
+.log-timestamp {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-right: 0.5rem;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+    }
+}
+
+/* 스크롤바 스타일 */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* 로딩 애니메이션 */
+.loading-shimmer {
+    background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* 숫자 카운터 애니메이션 */
+.counter {
+    transition: all 0.3s ease;
+}
+
+/* 알림 토스트 스타일 */
+.toast {
+    background: rgba(33, 37, 41, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toast-header {
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 버튼 호버 효과 */
+.btn {
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 특별한 강조 효과 */
+.highlight-opportunity {
+    animation: highlightPulse 2s infinite;
+}
+
+@keyframes highlightPulse {
+    0% { background-color: rgba(40, 167, 69, 0.1); }
+    50% { background-color: rgba(40, 167, 69, 0.3); }
+    100% { background-color: rgba(40, 167, 69, 0.1); }
+}
+
+.highlight-premium {
+    animation: premiumPulse 2s infinite;
+}
+
+@keyframes premiumPulse {
+    0% { background-color: rgba(23, 162, 184, 0.1); }
+    50% { background-color: rgba(23, 162, 184, 0.3); }
+    100% { background-color: rgba(23, 162, 184, 0.1); }
+}

@@ -23,6 +23,7 @@ from app.database.redis_cache import redis_manager
 from app.database.manager import db_manager
 from app.models.database import AnalysisJob, CoinRecommendation, SupportLevel, MarketStatus
 from app.core.config import settings
+from app.services.market_data_collector import market_data_collector
 
 
 class AnalysisWorker:
@@ -103,6 +104,16 @@ class AnalysisWorker:
     
     async def _register_jobs(self):
         """스케줄러에 작업 등록."""
+        # 실시간 시장 데이터 수집 - 1분마다
+        self.scheduler.add_job(
+            self.collect_market_data,
+            CronTrigger(minute='*'),
+            id='market_data_collection',
+            name='Real-time Market Data Collection',
+            max_instances=1,
+            coalesce=True
+        )
+        
         # 시장 상태 분석 - 2분마다
         self.scheduler.add_job(
             self.analyze_market_status,
@@ -165,6 +176,63 @@ class AnalysisWorker:
         
         asyncio.create_task(heartbeat())
     
+    async def collect_market_data(self):
+        """실시간 시장 데이터 수집."""
+        job_id = await self._start_job('market_data_collection')
+        try:
+            self.logger.info("Starting real-time market data collection...")
+            
+            # 거래소 설정 (환경 변수에서 가져오기)
+            exchange_configs = {}
+            
+            # OKX 설정
+            if settings.okx_api_key and settings.okx_secret_key:
+                exchange_configs['okx'] = {
+                    'api_key': settings.okx_api_key,
+                    'secret_key': settings.okx_secret_key,
+                    'passphrase': settings.okx_passphrase or ''
+                }
+            
+            # 코인원 설정
+            if settings.coinone_api_key and settings.coinone_secret_key:
+                exchange_configs['coinone'] = {
+                    'api_key': settings.coinone_api_key,
+                    'secret_key': settings.coinone_secret_key
+                }
+            
+            # Gate.io 설정
+            if settings.gate_api_key and settings.gate_secret_key:
+                exchange_configs['gate'] = {
+                    'api_key': settings.gate_api_key,
+                    'secret_key': settings.gate_secret_key
+                }
+            
+            if not exchange_configs:
+                self.logger.warning("No exchange API keys configured. Using demo mode.")
+                await self._complete_job(job_id, 0)
+                return
+            
+            # 수집할 심볼 목록 (OKX 형식)
+            target_symbols = ['BTC-USDT', 'ETH-USDT', 'ADA-USDT', 'DOT-USDT', 'SOL-USDT', 
+                            'MATIC-USDT', 'AVAX-USDT', 'ATOM-USDT', 'NEAR-USDT', 'FTM-USDT']
+            
+            # 거래소 설정 및 데이터 수집
+            if not market_data_collector.exchanges:
+                # 최초 실행 시에만 설정
+                market_data_collector.configure_exchanges(exchange_configs)
+                market_data_collector.set_target_symbols(target_symbols)
+            
+            # 데이터 수집 실행
+            data_points = await market_data_collector.collect_all_data()
+            await market_data_collector.process_and_store_data(data_points)
+            
+            await self._complete_job(job_id, len(data_points))
+            self.logger.info(f"Market data collection completed: {len(data_points)} data points")
+            
+        except Exception as e:
+            await self._fail_job(job_id, str(e))
+            self.logger.error(f"Market data collection failed: {e}")
+
     async def analyze_market_status(self):
         """시장 상태 분석."""
         job_id = await self._start_job('market_status')

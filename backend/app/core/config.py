@@ -44,6 +44,17 @@ class Settings(BaseSettings):
     gopax_secret_key: Optional[str] = None
     coinone_access_token: Optional[str] = None
     
+    # New Exchange APIs (Modularized Exchanges)
+    okx_api_key: Optional[str] = None
+    okx_secret_key: Optional[str] = None
+    okx_passphrase: Optional[str] = None
+    coinone_api_key: Optional[str] = None
+    coinone_secret_key: Optional[str] = None
+    gate_api_key: Optional[str] = None
+    gate_secret_key: Optional[str] = None
+    bybit_api_key: Optional[str] = None
+    bybit_secret_key: Optional[str] = None
+    
     # AI/ML Configuration
     ai_model_path: str = "./models"
     strategy_cache_ttl: int = 300
