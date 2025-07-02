@@ -153,6 +153,9 @@ async def get_support_levels(
                 detail=f"Support levels not available for {symbol}. Worker may not have analyzed this symbol yet."
             )
         
+        # Ensure symbol is included in the data
+        support_data['symbol'] = symbol
+        
         # Convert support data to schema format
         formatted_support = LightSupportLevel(**support_data)
         
