@@ -84,95 +84,461 @@ class CoinRecommender:
     async def _fetch_recommendations_from_exchange(self, exchange_name: str) -> List[Dict[str, Any]]:
         """거래소에서 거래량 상위 50개 코인 조회"""
         try:
-            # 거래소 인스턴스 생성
-            exchange = self.exchange_factory.create_exchange(exchange_name)
-            if not exchange:
-                logger.error(f"지원하지 않는 거래소: {exchange_name}")
-                return []
-            
-            # 모든 심볼 조회
-            symbols = await exchange.get_symbols()
-            if not symbols:
-                logger.warning(f"{exchange_name}에서 심볼 목록을 가져올 수 없음")
-                return []
-            
-            # USDT 페어만 필터링 (거래소별로 조정)
             if exchange_name.lower() == "upbit":
-                # 업비트는 KRW 페어
-                filtered_symbols = [s for s in symbols if s.endswith("-KRW")]
+                return await self._fetch_upbit_recommendations()
+            elif exchange_name.lower() == "okx":
+                return await self._fetch_okx_recommendations()
+            elif exchange_name.lower() == "coinone":
+                return await self._fetch_coinone_recommendations()
+            elif exchange_name.lower() == "gateio":
+                return await self._fetch_gateio_recommendations()
+            elif exchange_name.lower() == "bybit":
+                return await self._fetch_bybit_recommendations()
+            elif exchange_name.lower() == "bithumb":
+                return await self._fetch_bithumb_recommendations()
             else:
-                # 다른 거래소는 USDT 페어
-                filtered_symbols = [s for s in symbols if s.endswith("USDT")]
-            
-            # 각 심볼에 대해 티커 정보 조회
-            tickers = []
-            for symbol in filtered_symbols[:100]:  # 최대 100개만 조회
-                try:
-                    ticker = await exchange.get_ticker(symbol)
-                    if ticker and ticker.volume:
-                        tickers.append(ticker)
-                except Exception as e:
-                    logger.debug(f"{symbol} 티커 조회 실패: {e}")
-                    continue
-            
-            if not tickers:
-                logger.warning(f"{exchange_name}에서 티커 데이터를 가져올 수 없음")
+                logger.warning(f"{exchange_name}는 지원되지 않는 거래소입니다")
                 return []
             
-            # 거래량 기준으로 정렬 (상위 50개)
+        except Exception as e:
+            logger.error(f"{exchange_name} 추천 데이터 조회 오류: {e}")
+            return []
+    
+    async def _fetch_upbit_recommendations(self) -> List[Dict[str, Any]]:
+        """업비트에서 실제 데이터 조회"""
+        try:
+            import requests
+            
+            logger.info("업비트 실시간 데이터 조회 시작")
+            
+            # 1. 전체 KRW 마켓 코드 조회
+            market_url = 'https://api.upbit.com/v1/market/all'
+            market_response = requests.get(market_url)
+            markets = market_response.json()
+            
+            krw_markets = [m['market'] for m in markets if m['market'].startswith('KRW-')]
+            logger.info(f"업비트 KRW 페어 {len(krw_markets)}개 발견")
+            
+            # 2. 전체 시세 조회
+            ticker_url = 'https://api.upbit.com/v1/ticker'
+            markets_param = ','.join(krw_markets)
+            ticker_response = requests.get(ticker_url, params={'markets': markets_param})
+            tickers = ticker_response.json()
+            
+            # 3. 거래량 기준으로 정렬 (상위 50개)
             sorted_tickers = sorted(
-                tickers, 
-                key=lambda x: float(x.volume) if x.volume else 0, 
+                tickers,
+                key=lambda x: float(x['acc_trade_price_24h']) if x['acc_trade_price_24h'] else 0,
                 reverse=True
             )[:50]
             
-            # 추천 형태로 변환
+            # 4. 추천 형태로 변환
             recommendations = []
             for i, ticker in enumerate(sorted_tickers):
                 try:
-                    # 심볼에서 기본 코인명 추출
-                    base_symbol = ticker.symbol.split('-')[0] if '-' in ticker.symbol else ticker.symbol.replace('USDT', '')
+                    symbol = ticker['market'].replace('KRW-', '')
+                    price = float(ticker['trade_price'])
+                    volume_krw = float(ticker['acc_trade_price_24h'])  # KRW 거래량
+                    change_24h = float(ticker['change_rate']) * 100
                     
-                    # 변화율 계산 (임시로 0으로 설정)
-                    change_24h = 0.0  # BaseExchange에 change_24h 필드가 없음
-                    
-                    # 추천 등급은 거래량 순위에 따라 결정
-                    if i < 10:
+                    # 변화율과 거래량 기준으로 추천 등급 결정
+                    if change_24h > 10:
                         recommendation = "STRONG_BUY"
                         confidence = 0.9
-                    elif i < 20:
+                    elif change_24h > 5:
                         recommendation = "BUY"
                         confidence = 0.8
-                    elif i < 30:
+                    elif change_24h > -5:
                         recommendation = "HOLD"
                         confidence = 0.6
+                    elif change_24h > -10:
+                        recommendation = "SELL"
+                        confidence = 0.7
                     else:
-                        recommendation = "WATCH"
-                        confidence = 0.5
+                        recommendation = "STRONG_SELL"
+                        confidence = 0.8
+                    
+                    # 거래량이 높으면 신뢰도 증가
+                    if i < 10:  # 상위 10개는 신뢰도 증가
+                        confidence = min(0.95, confidence + 0.1)
                     
                     recommendations.append({
-                        "symbol": base_symbol,
-                        "full_symbol": ticker.symbol,
-                        "exchange": exchange_name,
+                        "symbol": symbol,
+                        "full_symbol": ticker['market'],
+                        "exchange": "upbit",
                         "rank": i + 1,
-                        "price": float(ticker.price) if ticker.price else 0,
-                        "volume_24h": float(ticker.volume) if ticker.volume else 0,
+                        "price": price,
+                        "volume_24h_krw": volume_krw,
+                        "volume_24h": float(ticker['acc_trade_volume_24h']),  # 코인 수량
                         "change_24h": change_24h,
                         "recommendation": recommendation,
-                        "confidence": confidence,
-                        "reason": f"거래량 {i+1}위",
+                        "confidence": round(confidence, 2),
+                        "reason": f"거래량 {i+1}위 (24h: {volume_krw:,.0f}원), 변동률 {change_24h:+.2f}%",
                         "timestamp": datetime.now().isoformat()
                     })
                     
                 except Exception as e:
-                    logger.warning(f"티커 처리 오류 ({ticker.symbol}): {e}")
+                    logger.warning(f"업비트 티커 처리 오류 ({ticker.get('market', 'unknown')}): {e}")
                     continue
             
-            logger.info(f"{exchange_name}에서 {len(recommendations)}개 추천 생성")
+            logger.info(f"업비트에서 {len(recommendations)}개 추천 생성 완료")
             return recommendations
             
         except Exception as e:
-            logger.error(f"{exchange_name} 추천 데이터 조회 오류: {e}")
+            logger.error(f"업비트 추천 데이터 조회 오류: {e}")
+            return []
+    
+    async def _fetch_okx_recommendations(self) -> List[Dict[str, Any]]:
+        """OKX에서 거래량 상위 50개 코인 조회"""
+        try:
+            from app.exchanges.okx.public_client import OKXPublicClient
+            
+            okx = OKXPublicClient()
+            try:
+                # 모든 티커 데이터 조회
+                tickers = await okx.get_all_tickers()
+                if not tickers:
+                    logger.warning("OKX에서 티커 데이터를 가져올 수 없음")
+                    return []
+                
+                # USDT 페어만 필터링 및 거래량 USD 계산
+                filtered_tickers = []
+                for t in tickers:
+                    if t.symbol.endswith('-USDT'):
+                        volume_usd = float(t.price) * float(t.volume) if t.volume else 0
+                        filtered_tickers.append((t, volume_usd))
+                
+                # 거래량 USD 기준으로 정렬 (상위 50개)
+                sorted_tickers = sorted(
+                    filtered_tickers, 
+                    key=lambda x: x[1],  # volume_usd 기준
+                    reverse=True
+                )[:50]
+                
+                # 추천 형태로 변환
+                recommendations = []
+                for i, (ticker, volume_usd) in enumerate(sorted_tickers):
+                    try:
+                        # 심볼에서 기본 코인명 추출 (BTC-USDT -> BTC)
+                        base_symbol = ticker.symbol.replace('-USDT', '')
+                        
+                        # 추천 등급은 거래량 순위에 따라 결정
+                        if i < 10:
+                            recommendation = "STRONG_BUY"
+                            confidence = 0.9
+                        elif i < 20:
+                            recommendation = "BUY"
+                            confidence = 0.8
+                        elif i < 30:
+                            recommendation = "HOLD"
+                            confidence = 0.6
+                        else:
+                            recommendation = "WATCH"
+                            confidence = 0.5
+                        
+                        recommendations.append({
+                            "symbol": base_symbol,
+                            "full_symbol": ticker.symbol,
+                            "exchange": "okx",
+                            "rank": i + 1,
+                            "price": float(ticker.price),
+                            "volume_24h": float(ticker.volume),
+                            "volume_24h_usdt": volume_usd,  # 필드명 통일
+                            "change_24h": 0.0,  # OKX API에서 변동률 추가 필요시
+                            "recommendation": recommendation,
+                            "confidence": confidence,
+                            "reason": f"거래량 {i+1}위 (24h: ${volume_usd:,.0f})",
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+                    except Exception as e:
+                        logger.warning(f"OKX 티커 처리 오류 ({ticker.symbol}): {e}")
+                        continue
+                
+                logger.info(f"OKX에서 {len(recommendations)}개 추천 생성")
+                return recommendations
+                
+            finally:
+                await okx.close()
+                
+        except Exception as e:
+            logger.error(f"OKX 추천 데이터 조회 오류: {e}")
+            return []
+    
+    async def _fetch_coinone_recommendations(self) -> List[Dict[str, Any]]:
+        """Coinone에서 거래량 상위 50개 코인 조회"""
+        try:
+            from app.exchanges.coinone.public_client import CoinonePublicClient
+            
+            coinone = CoinonePublicClient()
+            try:
+                # 상위 50개 코인 조회
+                tickers = await coinone.get_top_coins(50)
+                if not tickers:
+                    logger.warning("Coinone에서 티커 데이터를 가져올 수 없음")
+                    return []
+                
+                recommendations = []
+                for i, ticker in enumerate(tickers):
+                    try:
+                        change_24h = ticker.get('change_24h', 0)
+                        volume_krw = ticker.get('volume_24h_krw', 0)
+                        
+                        # 변화율과 거래량 기준으로 추천 등급 결정
+                        if change_24h > 10:
+                            recommendation = "STRONG_BUY"
+                            confidence = 0.9
+                        elif change_24h > 5:
+                            recommendation = "BUY"
+                            confidence = 0.8
+                        elif change_24h > -5:
+                            recommendation = "HOLD"
+                            confidence = 0.6
+                        elif change_24h > -10:
+                            recommendation = "SELL"
+                            confidence = 0.7
+                        else:
+                            recommendation = "STRONG_SELL"
+                            confidence = 0.8
+                        
+                        # 상위권은 신뢰도 증가
+                        if i < 10:
+                            confidence = min(0.95, confidence + 0.1)
+                        
+                        recommendations.append({
+                            "symbol": ticker['coin'],
+                            "full_symbol": ticker['symbol'],
+                            "exchange": "coinone",
+                            "rank": i + 1,
+                            "price": ticker['current_price'],
+                            "volume_24h_krw": volume_krw,
+                            "volume_24h": ticker['volume_24h'],
+                            "change_24h": change_24h,
+                            "recommendation": recommendation,
+                            "confidence": round(confidence, 2),
+                            "reason": f"거래량 {i+1}위 (24h: {volume_krw:,.0f}원), 변동률 {change_24h:+.2f}%",
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+                    except Exception as e:
+                        logger.warning(f"Coinone 티커 처리 오류 ({ticker.get('symbol', 'unknown')}): {e}")
+                        continue
+                
+                logger.info(f"Coinone에서 {len(recommendations)}개 추천 생성 완료")
+                return recommendations
+                
+            finally:
+                await coinone.close()
+                
+        except Exception as e:
+            logger.error(f"Coinone 추천 데이터 조회 오류: {e}")
+            return []
+    
+    async def _fetch_gateio_recommendations(self) -> List[Dict[str, Any]]:
+        """Gate.io에서 거래량 상위 50개 코인 조회"""
+        try:
+            from app.exchanges.gateio.public_client import GateIOPublicClient
+            
+            gateio = GateIOPublicClient()
+            try:
+                # 상위 50개 코인 조회
+                tickers = await gateio.get_top_coins(50)
+                if not tickers:
+                    logger.warning("Gate.io에서 티커 데이터를 가져올 수 없음")
+                    return []
+                
+                recommendations = []
+                for i, ticker in enumerate(tickers):
+                    try:
+                        change_24h = ticker.get('change_24h', 0)
+                        volume_usdt = ticker.get('volume_24h_usdt', 0)
+                        
+                        # 변화율과 거래량 기준으로 추천 등급 결정
+                        if change_24h > 10:
+                            recommendation = "STRONG_BUY"
+                            confidence = 0.9
+                        elif change_24h > 5:
+                            recommendation = "BUY"
+                            confidence = 0.8
+                        elif change_24h > -5:
+                            recommendation = "HOLD"
+                            confidence = 0.6
+                        elif change_24h > -10:
+                            recommendation = "SELL"
+                            confidence = 0.7
+                        else:
+                            recommendation = "STRONG_SELL"
+                            confidence = 0.8
+                        
+                        # 상위권은 신뢰도 증가
+                        if i < 10:
+                            confidence = min(0.95, confidence + 0.1)
+                        
+                        recommendations.append({
+                            "symbol": ticker['coin'],
+                            "full_symbol": ticker['symbol'],
+                            "exchange": "gateio",
+                            "rank": i + 1,
+                            "price": ticker['current_price'],
+                            "volume_24h_usdt": volume_usdt,
+                            "volume_24h": ticker['volume_24h'],
+                            "change_24h": change_24h,
+                            "recommendation": recommendation,
+                            "confidence": round(confidence, 2),
+                            "reason": f"거래량 {i+1}위 (24h: ${volume_usdt:,.0f}), 변동률 {change_24h:+.2f}%",
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+                    except Exception as e:
+                        logger.warning(f"Gate.io 티커 처리 오류 ({ticker.get('symbol', 'unknown')}): {e}")
+                        continue
+                
+                logger.info(f"Gate.io에서 {len(recommendations)}개 추천 생성 완료")
+                return recommendations
+                
+            finally:
+                await gateio.close()
+                
+        except Exception as e:
+            logger.error(f"Gate.io 추천 데이터 조회 오류: {e}")
+            return []
+    
+    async def _fetch_bybit_recommendations(self) -> List[Dict[str, Any]]:
+        """Bybit에서 거래량 상위 50개 코인 조회"""
+        try:
+            from app.exchanges.bybit.public_client import BybitPublicClient
+            
+            bybit = BybitPublicClient()
+            try:
+                # 상위 50개 코인 조회
+                tickers = await bybit.get_top_coins(50)
+                if not tickers:
+                    logger.warning("Bybit에서 티커 데이터를 가져올 수 없음")
+                    return []
+                
+                recommendations = []
+                for i, ticker in enumerate(tickers):
+                    try:
+                        change_24h = ticker.get('change_24h', 0)
+                        volume_usdt = ticker.get('volume_24h_usdt', 0)
+                        
+                        # 변화율과 거래량 기준으로 추천 등급 결정
+                        if change_24h > 10:
+                            recommendation = "STRONG_BUY"
+                            confidence = 0.9
+                        elif change_24h > 5:
+                            recommendation = "BUY"
+                            confidence = 0.8
+                        elif change_24h > -5:
+                            recommendation = "HOLD"
+                            confidence = 0.6
+                        elif change_24h > -10:
+                            recommendation = "SELL"
+                            confidence = 0.7
+                        else:
+                            recommendation = "STRONG_SELL"
+                            confidence = 0.8
+                        
+                        # 상위권은 신뢰도 증가
+                        if i < 10:
+                            confidence = min(0.95, confidence + 0.1)
+                        
+                        recommendations.append({
+                            "symbol": ticker['coin'],
+                            "full_symbol": ticker['symbol'],
+                            "exchange": "bybit",
+                            "rank": i + 1,
+                            "price": ticker['current_price'],
+                            "volume_24h_usdt": volume_usdt,
+                            "volume_24h": ticker['volume_24h'],
+                            "change_24h": change_24h,
+                            "recommendation": recommendation,
+                            "confidence": round(confidence, 2),
+                            "reason": f"거래량 {i+1}위 (24h: ${volume_usdt:,.0f}), 변동률 {change_24h:+.2f}%",
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+                    except Exception as e:
+                        logger.warning(f"Bybit 티커 처리 오류 ({ticker.get('symbol', 'unknown')}): {e}")
+                        continue
+                
+                logger.info(f"Bybit에서 {len(recommendations)}개 추천 생성 완료")
+                return recommendations
+                
+            finally:
+                await bybit.close()
+                
+        except Exception as e:
+            logger.error(f"Bybit 추천 데이터 조회 오류: {e}")
+            return []
+    
+    async def _fetch_bithumb_recommendations(self) -> List[Dict[str, Any]]:
+        """Bithumb에서 거래량 상위 50개 코인 조회"""
+        try:
+            from app.exchanges.bithumb.public_client import BithumbPublicClient
+            
+            bithumb = BithumbPublicClient()
+            try:
+                # 상위 50개 코인 조회
+                tickers = await bithumb.get_top_coins(50)
+                if not tickers:
+                    logger.warning("Bithumb에서 티커 데이터를 가져올 수 없음")
+                    return []
+                
+                recommendations = []
+                for i, ticker in enumerate(tickers):
+                    try:
+                        change_24h = ticker.get('change_24h', 0)
+                        volume_krw = ticker.get('volume_24h_krw', 0)
+                        
+                        # 변화율과 거래량 기준으로 추천 등급 결정
+                        if change_24h > 10:
+                            recommendation = "STRONG_BUY"
+                            confidence = 0.9
+                        elif change_24h > 5:
+                            recommendation = "BUY"
+                            confidence = 0.8
+                        elif change_24h > -5:
+                            recommendation = "HOLD"
+                            confidence = 0.6
+                        elif change_24h > -10:
+                            recommendation = "SELL"
+                            confidence = 0.7
+                        else:
+                            recommendation = "STRONG_SELL"
+                            confidence = 0.8
+                        
+                        # 상위권은 신뢰도 증가
+                        if i < 10:
+                            confidence = min(0.95, confidence + 0.1)
+                        
+                        recommendations.append({
+                            "symbol": ticker['coin'],
+                            "full_symbol": ticker['symbol'],
+                            "exchange": "bithumb",
+                            "rank": i + 1,
+                            "price": ticker['current_price'],
+                            "volume_24h_krw": volume_krw,
+                            "volume_24h": ticker['volume_24h'],
+                            "change_24h": change_24h,
+                            "recommendation": recommendation,
+                            "confidence": round(confidence, 2),
+                            "reason": f"거래량 {i+1}위 (24h: {volume_krw:,.0f}원), 변동률 {change_24h:+.2f}%",
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        
+                    except Exception as e:
+                        logger.warning(f"Bithumb 티커 처리 오류 ({ticker.get('symbol', 'unknown')}): {e}")
+                        continue
+                
+                logger.info(f"Bithumb에서 {len(recommendations)}개 추천 생성 완료")
+                return recommendations
+                
+            finally:
+                await bithumb.close()
+                
+        except Exception as e:
+            logger.error(f"Bithumb 추천 데이터 조회 오류: {e}")
             return []
     
     async def update_all_recommendations(self):
