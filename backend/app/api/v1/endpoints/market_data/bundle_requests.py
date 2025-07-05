@@ -11,9 +11,9 @@ import logging
 
 from app.core.config import settings
 from app.schemas.market_data import BundleRequest, BundleResponse
-from app.api.v1.endpoints.recommendations import get_recommendations
-from app.api.v1.endpoints.support_levels import get_support_levels
-from app.api.v1.endpoints.market_status import get_market_status
+from .recommendations import get_recommendations
+from .support_levels import get_support_levels
+from .market_status import get_market_status
 
 logger = logging.getLogger(__name__)
 

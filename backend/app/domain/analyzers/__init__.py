@@ -2,7 +2,7 @@
 Coin analysis strategies for recommendation engine.
 Implements Strategy pattern for different analysis methods.
 """
-from .coin_analyzer import (
+from .components import (
     CoinAnalyzer,
     CoinAnalysisResult,
     AnalysisStrength,
