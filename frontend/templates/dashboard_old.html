@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dantaro Central - 실시간 차익거래 대시보드</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body class="bg-dark text-light">
+    <!-- 헤더 -->
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line me-2"></i>
+                Dantaro Central Dashboard
+            </a>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-success me-3" id="connection-status">
+                    <i class="fas fa-wifi"></i> 연결 중...
+                </span>
+                <span class="text-light" id="last-update">업데이트 대기 중</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <!-- 상태 개요 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-exchange-alt text-primary"></i> 활성 거래소</h5>
+                                <h2 id="active-exchanges">4</h2>
+                                <small>OKX, Upbit, Coinone, Gate.io</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-coins text-warning"></i> 추적 심볼</h5>
+                                <h2 id="tracked-symbols">0</h2>
+                                <small>실시간 모니터링</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-chart-area text-success"></i> 차익거래 기회</h5>
+                                <h2 id="arbitrage-count">0</h2>
+                                <small>현재 활성 기회</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-flag text-info"></i> 김치 프리미엄</h5>
+                                <h2 id="kimchi-count">0</h2>
+                                <small>프리미엄 기회</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 실시간 가격 테이블 -->
+            <div class="col-lg-6 mb-4">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-dollar-sign text-warning"></i> 실시간 가격</h5>
+                        <small id="price-update-time">업데이트 대기 중</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-dark table-striped table-hover mb-0">
+                                <thead class="table-primary sticky-top">
+                                    <tr>
+                                        <th>거래소</th>
+                                        <th>심볼</th>
+                                        <th>가격</th>
+                                        <th>거래량</th>
+                                        <th>변화</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="price-table-body">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin"></i> 데이터 로딩 중...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 차익거래 기회 -->
+            <div class="col-lg-6 mb-4">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-chart-line text-success"></i> 차익거래 기회</h5>
+                        <small id="arbitrage-update-time">업데이트 대기 중</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-dark table-striped table-hover mb-0">
+                                <thead class="table-success sticky-top">
+                                    <tr>
+                                        <th>심볼</th>
+                                        <th>매수</th>
+                                        <th>매도</th>
+                                        <th>스프레드</th>
+                                        <th>신뢰도</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="arbitrage-table-body">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <i class="fas fa-search"></i> 기회 탐색 중...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 김치 프리미엄 -->
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-flag text-info"></i> 김치 프리미엄</h5>
+                        <small id="kimchi-update-time">업데이트 대기 중</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-striped table-hover mb-0">
+                                <thead class="table-info">
+                                    <tr>
+                                        <th>심볼</th>
+                                        <th>한국 거래소</th>
+                                        <th>글로벌 거래소</th>
+                                        <th>한국 가격</th>
+                                        <th>글로벌 가격</th>
+                                        <th>프리미엄 (%)</th>
+                                        <th>상태</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kimchi-table-body">
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">
+                                            <i class="fas fa-chart-bar"></i> 프리미엄 계산 중...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 실시간 차트 -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-area text-primary"></i> 스프레드 히스토리</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="spread-chart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line text-info"></i> 김치 프리미엄 히스토리</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="kimchi-chart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 로그 및 알림 -->
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-bell text-warning"></i> 실시간 알림</h5>
+                        <div>
+                            <button class="btn btn-sm btn-success me-2" onclick="testDashboardStatus()">
+                                <i class="fas fa-check"></i> 상태 확인
+                            </button>
+                            <button class="btn btn-sm btn-info me-2" onclick="forceUpdateData()">
+                                <i class="fas fa-sync"></i> 강제 업데이트
+                            </button>
+                            <button class="btn btn-sm btn-warning me-2" onclick="sendTestData()">
+                                <i class="fas fa-paper-plane"></i> 테스트 전송
+                            </button>
+                            <button class="btn btn-sm btn-danger me-2" onclick="sendRealData()">
+                                <i class="fas fa-rocket"></i> 실제 데이터
+                            </button>
+                            <button class="btn btn-sm btn-purple me-2" onclick="startRealDataStream()">
+                                <i class="fas fa-play"></i> 실시간 시작
+                            </button>
+                            <button class="btn btn-sm btn-dark me-2" onclick="stopRealDataStream()">
+                                <i class="fas fa-stop"></i> 실시간 중지
+                            </button>
+                            <button class="btn btn-sm btn-primary me-2" onclick="testCharts()">
+                                <i class="fas fa-chart-line"></i> 차트 확인
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" onclick="clearLogs()">
+                                <i class="fas fa-trash"></i> 지우기
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                        <div id="log-container">
+                            <div class="text-muted text-center">
+                                <i class="fas fa-clock"></i> 알림 대기 중...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 추가 정보 섹션 -->
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle text-primary"></i> 추가 정보</h5>
+                    </div>
+                    <div class="card-body">
+                        <section>
+                            <h6>API 상태</h6>
+                            <ul>
+                                <li><a href="/health" target="_blank">/health (헬스체크)</a></li>
+                                <li><a href="/api/v1/recommendations" target="_blank">/api/v1/recommendations (API 인증 필요)</a></li>
+                                <li><a href="/metrics" target="_blank">/metrics (Prometheus)</a></li>
+                                <li><a href="/docs" target="_blank">/docs (Swagger UI)</a></li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h6>모니터링</h6>
+                            <ul>
+                                <li><a href="http://localhost:9090" target="_blank">Prometheus 대시보드</a></li>
+                                <li><a href="http://localhost:3000" target="_blank">Grafana 대시보드</a></li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h6>시스템 정보</h6>
+                            <div id="system-info">
+                                <em>API에서 실시간 상태를 불러오는 중...</em>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 연결 상태 모달 -->
+    <div class="modal fade" id="connectionModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">연결 상태</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="modal-status-content">
+                        <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+                        <p>WebSocket 연결 중...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 데이터 어댑터 먼저 로드 -->
+    <script src="/static/js/adapter.js?v=20250704-2"></script>
+    <!-- 대시보드 메인 스크립트 -->
+    <script src="/static/js/dashboard.js?v=20250704-2"></script>
+    <script>
+    console.log('🔥 스크립트 시작!');
+    
+    // 즉시 테스트
+    console.log('어댑터 확인:', typeof window.DantaroAdapter);
+    console.log('대시보드 클래스 확인:', typeof DantaroDashboard);
+    
+    // 대시보드 초기화
+    let dashboard = null;
+    let initializationAttempted = false;
+    
+    function initDashboard() {
+        if (initializationAttempted) {
+            console.log('🔄 이미 초기화 시도됨 - 건너뛰기');
+            return;
+        }
+        
+        initializationAttempted = true;
+        console.log('🚀 대시보드 강제 초기화!');
+        try {
+            // 기존 인스턴스가 있다면 정리
+            if (window.dashboard && typeof window.dashboard.disconnect === 'function') {
+                window.dashboard.disconnect();
+            }
+            
+            dashboard = new DantaroDashboard();
+            window.dashboard = dashboard; // 전역 참조 저장
+            console.log('✅ 대시보드 생성 성공');
+        } catch (error) {
+            console.error('❌ 대시보드 생성 실패:', error);
+            initializationAttempted = false; // 실패 시 재시도 허용
+        }
+    }
+    
+    // 여러 방법으로 초기화 시도
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    } else {
+        // DOM이 이미 로드된 경우
+        initDashboard();
+    }
+    
+    // 백업 초기화 (2초 후)
+    setTimeout(() => {
+        if (!dashboard) {
+            console.log('⚡ 백업 초기화 시도');
+            initDashboard();
+        }
+    }, 2000);
+    
+    // 시스템 정보 로드
+    fetch('/health').then(r => r.json()).then(data => {
+        document.getElementById('system-info').innerHTML =
+            `<b>상태:</b> ${data.api_server} <br><b>데이터베이스:</b> ${data.database.status}`;
+    }).catch(() => {
+        document.getElementById('system-info').innerHTML = '<span style="color:red">API 연결 실패</span>';
+    });
+    
+    // 버튼 클릭 함수들
+    window.testDashboardStatus = function() {
+        console.log('=== 대시보드 상태 확인 ===');
+        if (window.dashboard) {
+            console.log('✅ 대시보드 인스턴스 존재');
+            console.log('가격 데이터:', window.dashboard.priceData.size);
+            console.log('차익거래 데이터:', window.dashboard.arbitrageData.length);
+            console.log('김치 프리미엄 데이터:', window.dashboard.kimchiData.length);
+            console.log('WebSocket 상태:', window.dashboard.ws ? window.dashboard.ws.readyState : 'none');
+            
+            // 로그에도 표시
+            const logContainer = document.getElementById('log-container');
+            if (logContainer) {
+                logContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        <strong>대시보드 상태:</strong><br>
+                        가격 데이터: ${window.dashboard.priceData.size}개<br>
+                        차익거래: ${window.dashboard.arbitrageData.length}개<br>
+                        김치 프리미엄: ${window.dashboard.kimchiData.length}개<br>
+                        WebSocket: ${window.dashboard.ws ? '연결됨' : '없음'}
+                    </div>
+                `;
+            }
+        } else {
+            console.log('❌ 대시보드 인스턴스 없음');
+            const logContainer = document.getElementById('log-container');
+            if (logContainer) {
+                logContainer.innerHTML = '<div class="alert alert-danger">❌ 대시보드 인스턴스가 없습니다</div>';
+            }
+        }
+    };
+    
+    window.forceUpdateData = function() {
+        console.log('🔄 강제 데이터 업데이트');
+        if (window.dashboard) {
+            // 강제로 테스트 데이터 설정
+            window.dashboard.arbitrageData = [
+                {
+                    symbol: 'BTC',
+                    buy_exchange: 'OKX',
+                    sell_exchange: 'Upbit', 
+                    buy_price: 95000,
+                    sell_price: 97000,
+                    spread_percentage: 2.1,
+                    confidence: 0.85,
+                    volume: 500000
+                }
+            ];
+            
+            window.dashboard.kimchiData = [
+                {
+                    symbol: 'BTC',
+                    korean_exchange: 'Upbit',
+                    global_exchange: 'OKX',
+                    korean_price: 97000,
+                    global_price: 95000,
+                    premium_percentage: 2.1,
+                    status: 'positive'
+                }
+            ];
+            
+            // UI 업데이트
+            window.dashboard.updateArbitrageTable();
+            window.dashboard.updateKimchiTable();
+            window.dashboard.updateStats();
+            
+            // 차트 업데이트
+            window.dashboard.updateSpreadChart();
+            window.dashboard.updateKimchiChart();
+            
+            console.log('✅ 강제 업데이트 완료 (차트 포함)');
+            
+            const logContainer = document.getElementById('log-container');
+            if (logContainer) {
+                logContainer.innerHTML = '<div class="alert alert-success">✅ 강제 데이터 업데이트 완료</div>';
+            }
+        } else {
+            console.log('❌ 대시보드 인스턴스 없음');
+        }
+    };
+    
+    window.sendTestData = function() {
+        console.log('📡 테스트 데이터 전송');
+        fetch('/api/websocket/broadcast-test-data', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ 테스트 데이터 전송 결과:', data);
+                const logContainer = document.getElementById('log-container');
+                if (logContainer) {
+                    logContainer.innerHTML = `<div class="alert alert-success">📡 ${data.message || '테스트 데이터 전송 완료'}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('❌ 테스트 데이터 전송 오류:', error);
+                const logContainer = document.getElementById('log-container');
+                if (logContainer) {
+                    logContainer.innerHTML = '<div class="alert alert-danger">❌ 테스트 데이터 전송 실패</div>';
+                }
+            });
+    };
+    
+    window.testCharts = function() {
+        console.log('=== 차트 상태 확인 ===');
+        if (window.dashboard) {
+            console.log('스프레드 차트:', !!window.dashboard.spreadChart);
+            console.log('김치 차트:', !!window.dashboard.kimchiChart);
+            
+            if (window.dashboard.spreadChart) {
+                console.log('스프레드 차트 데이터 수:', window.dashboard.spreadChart.data.labels.length);
+            }
+            if (window.dashboard.kimchiChart) {
+                console.log('김치 차트 데이터 수:', window.dashboard.kimchiChart.data.labels.length);
+            }
+            
+            // 강제로 차트에 데이터 추가
+            if (window.dashboard.arbitrageData.length > 0) {
+                console.log('🔄 스프레드 차트 강제 업데이트');
+                window.dashboard.updateSpreadChart();
+            }
+            
+            if (window.dashboard.kimchiData.length > 0) {
+                console.log('🔄 김치 차트 강제 업데이트');
+                window.dashboard.updateKimchiChart();
+            }
+        } else {
+            console.log('❌ 대시보드 인스턴스 없음');
+        }
+    };
+    </script>
+</body>
+</html>

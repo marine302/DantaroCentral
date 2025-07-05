@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dantaro Dashboard Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { border: 1px solid #ccc; margin: 10px 0; padding: 10px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Dantaro Dashboard Debug</h1>
+    
+    <div class="debug-section">
+        <h2>1. JavaScript 파일 로드 테스트</h2>
+        <div id="js-load-status">확인 중...</div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>2. WebSocket 연결 테스트</h2>
+        <div id="ws-status">연결 시도 중...</div>
+        <div id="ws-messages"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>3. 수동 테스트</h2>
+        <button onclick="sendTestData()">테스트 데이터 전송</button>
+        <button onclick="connectWebSocket()">WebSocket 재연결</button>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>4. 콘솔 로그</h2>
+        <div id="console-logs" style="max-height: 300px; overflow-y: auto; background: #f5f5f5; padding: 10px;">
+        </div>
+    </div>
+
+    <script src="/static/js/adapter.js?v=debug-1"></script>
+    <script src="/static/js/dashboard.js?v=debug-1"></script>
+    <script>
+    let ws = null;
+    let messageCount = 0;
+    
+    // 콘솔 로그 캡처
+    const originalLog = console.log;
+    console.log = function(...args) {
+        originalLog.apply(console, args);
+        const logDiv = document.getElementById('console-logs');
+        const logEntry = document.createElement('div');
+        logEntry.textContent = args.join(' ');
+        logDiv.appendChild(logEntry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    };
+    
+    // JavaScript 파일 로드 확인
+    function checkJavaScriptLoad() {
+        const status = document.getElementById('js-load-status');
+        let result = '';
+        
+        if (typeof window.DantaroAdapter !== 'undefined') {
+            result += '<div class="success">✅ DantaroAdapter 로드됨</div>';
+        } else {
+            result += '<div class="error">❌ DantaroAdapter 로드 실패</div>';
+        }
+        
+        if (typeof DantaroDashboard !== 'undefined') {
+            result += '<div class="success">✅ DantaroDashboard 클래스 로드됨</div>';
+        } else {
+            result += '<div class="error">❌ DantaroDashboard 클래스 로드 실패</div>';
+        }
+        
+        status.innerHTML = result;
+    }
+    
+    // WebSocket 연결
+    function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/realtime`;
+        
+        console.log('WebSocket 연결 시도:', wsUrl);
+        document.getElementById('ws-status').innerHTML = '<div class="info">연결 중...</div>';
+        
+        ws = new WebSocket(wsUrl);
+        
+        ws.onopen = function() {
+            console.log('WebSocket 연결 성공');
+            document.getElementById('ws-status').innerHTML = '<div class="success">✅ 연결됨</div>';
+        };
+        
+        ws.onmessage = function(event) {
+            messageCount++;
+            console.log('메시지 수신:', event.data);
+            
+            const messagesDiv = document.getElementById('ws-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.innerHTML = `<strong>[${messageCount}]</strong> ${event.data.substring(0, 100)}...`;
+            messagesDiv.appendChild(msgDiv);
+            
+            // 최대 5개 메시지만 표시
+            while (messagesDiv.children.length > 5) {
+                messagesDiv.removeChild(messagesDiv.firstChild);
+            }
+        };
+        
+        ws.onclose = function() {
+            console.log('WebSocket 연결 종료');
+            document.getElementById('ws-status').innerHTML = '<div class="error">❌ 연결 종료</div>';
+        };
+        
+        ws.onerror = function(error) {
+            console.error('WebSocket 오류:', error);
+            document.getElementById('ws-status').innerHTML = '<div class="error">❌ 연결 오류</div>';
+        };
+    }
+    
+    // 테스트 데이터 전송
+    function sendTestData() {
+        console.log('테스트 데이터 전송 시도');
+        fetch('/api/dashboard/send-test-data', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                console.log('테스트 데이터 결과:', data);
+                document.getElementById('test-results').innerHTML = 
+                    `<div class="success">✅ ${data.message}</div>`;
+            })
+            .catch(error => {
+                console.error('테스트 데이터 오류:', error);
+                document.getElementById('test-results').innerHTML = 
+                    `<div class="error">❌ ${error.message}</div>`;
+            });
+    }
+    
+    // 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Debug 페이지 초기화');
+        checkJavaScriptLoad();
+        connectWebSocket();
+    });
+    </script>
+</body>
+</html>

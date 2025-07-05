@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Simple Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #logs { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto; }
+        .log-entry { margin: 5px 0; }
+        .log-success { color: green; }
+        .log-error { color: red; }
+        .log-info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Simple Test</h1>
+    <button onclick="connectWebSocket()">Connect WebSocket</button>
+    <button onclick="disconnectWebSocket()">Disconnect</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+    
+    <h2>Connection Logs</h2>
+    <div id="logs"></div>
+
+    <script>
+        let ws = null;
+        
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('WebSocket is already connected', 'info');
+                return;
+            }
+            
+            try {
+                log('Attempting to connect to WebSocket...', 'info');
+                ws = new WebSocket('ws://localhost:8001/ws/realtime');
+                
+                ws.onopen = function(event) {
+                    log('✅ WebSocket connected successfully!', 'success');
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        log(`📥 Received: ${JSON.stringify(data)}`, 'info');
+                    } catch (e) {
+                        log(`📥 Received (raw): ${event.data}`, 'info');
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    log(`❌ WebSocket error: ${error}`, 'error');
+                    console.error('WebSocket error:', error);
+                };
+                
+                ws.onclose = function(event) {
+                    log(`🔌 WebSocket closed: Code ${event.code}, Reason: ${event.reason}`, 'info');
+                };
+                
+            } catch (error) {
+                log(`❌ Failed to create WebSocket: ${error.message}`, 'error');
+                console.error('WebSocket creation error:', error);
+            }
+        }
+        
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                ws = null;
+                log('WebSocket disconnected', 'info');
+            }
+        }
+        
+        // Auto-connect on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Page loaded, auto-connecting...', 'info');
+            connectWebSocket();
+        });
+    </script>
+</body>
+</html>

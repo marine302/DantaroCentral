@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dantaro Central - AI 추천 코인</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <style>
+        .recommendation-card {
+            border-left: 4px solid #28a745;
+            transition: all 0.3s ease;
+        }
+        .recommendation-card:hover {
+            background-color: #495057 !important;
+            transform: translateY(-2px);
+        }
+        .strength-strong { border-left-color: #28a745; }
+        .strength-moderate { border-left-color: #ffc107; }
+        .strength-weak { border-left-color: #dc3545; }
+        .score-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        .score-high { background: linear-gradient(45deg, #28a745, #20c997); }
+        .score-medium { background: linear-gradient(45deg, #ffc107, #fd7e14); }
+        .score-low { background: linear-gradient(45deg, #dc3545, #e83e8c); }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <!-- 헤더 -->
+    <nav class="navbar navbar-dark bg-primary sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Dantaro Central
+            </a>
+            <div class="navbar-nav d-flex flex-row">
+                <a class="nav-link me-3" href="/"><i class="fas fa-home"></i> 대시보드</a>
+                <a class="nav-link me-3" href="/markets"><i class="fas fa-coins"></i> 시세</a>
+                <a class="nav-link active" href="/recommendations"><i class="fas fa-star"></i> 추천</a>
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-success me-3" id="connection-status">
+                    <i class="fas fa-wifi"></i> 연결 중...
+                </span>
+                <span class="text-light" id="last-update">업데이트 대기 중</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <!-- 상단 요약 정보 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-coins"></i> OKX</h5>
+                                <h2 id="okx-count">0</h2>
+                                <small>개 코인</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-won-sign"></i> Upbit</h5>
+                                <h2 id="upbit-count">0</h2>
+                                <small>개 코인</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-chart-line"></i> Coinone</h5>
+                                <h2 id="coinone-count">0</h2>
+                                <small>개 코인</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-chart-bar"></i> 총 추천</h5>
+                                <h2 id="total-analyzed">0</h2>
+                                <small>개 코인</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 필터 및 정렬 -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-light active" data-filter="all">
+                        <i class="fas fa-list"></i> 전체
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" data-filter="okx">
+                        <i class="fas fa-coins"></i> OKX
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" data-filter="upbit">
+                        <i class="fas fa-won-sign"></i> Upbit
+                    </button>
+                    <button type="button" class="btn btn-outline-info" data-filter="coinone">
+                        <i class="fas fa-chart-line"></i> Coinone
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-light active" data-sort="score">
+                        <i class="fas fa-sort-amount-down"></i> 점수순
+                    </button>
+                    <button type="button" class="btn btn-outline-light" data-sort="volume">
+                        <i class="fas fa-chart-bar"></i> 거래량순
+                    </button>
+                    <button type="button" class="btn btn-outline-light" data-sort="change">
+                        <i class="fas fa-percentage"></i> 변화율순
+                    </button>
+                    <button type="button" class="btn btn-outline-light" data-sort="rank">
+                        <i class="fas fa-trophy"></i> 순위순
+                    </button>
+                </div>
+            </div>
+        </div>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-light" onclick="sortBy('score')">
+                        <i class="fas fa-sort-amount-down"></i> 점수순
+                    </button>
+                    <button type="button" class="btn btn-outline-light" onclick="sortBy('volume')">
+                        <i class="fas fa-volume-up"></i> 거래량순
+                    </button>
+                    <button type="button" class="btn btn-outline-light" onclick="sortBy('change')">
+                        <i class="fas fa-chart-line"></i> 변화율순
+                    </button>
+                    <button type="button" class="btn btn-outline-light" onclick="refreshRecommendations()">
+                        <i class="fas fa-sync"></i> 새로고침
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 추천 코인 목록 -->
+        <div class="row" id="recommendations-container">
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                <h5>AI 추천 분석 중...</h5>
+                <p class="text-muted">잠시만 기다려주세요.</p>
+            </div>
+        </div>
+
+        <!-- 분석 정보 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> 분석 정보</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>분석 방법:</strong> 거래량 기반 단타 전략</p>
+                                <p><strong>업데이트 주기:</strong> 실시간</p>
+                                <p><strong>데이터 소스:</strong> OKX, Upbit, Coinone</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>마지막 분석:</strong> <span id="last-analysis-time">-</span></p>
+                                <p><strong>분석 대상:</strong> <span id="analysis-scope">-</span></p>
+                                <p><strong>추천 기준:</strong> 거래량, 변동성, 유동성</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Recommendations JS -->
+    <script src="/static/js/recommendations.js"></script>
+    
+    <script>
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            window.recommendationsApp = new RecommendationsApp();
+        });
+
+        function sortBy(criteria) {
+            if (window.recommendationsApp) {
+                window.recommendationsApp.sortBy(criteria);
+            }
+        }
+
+        function refreshRecommendations() {
+            if (window.recommendationsApp) {
+                window.recommendationsApp.refreshRecommendations();
+            }
+        }
+    </script>
+</body>
+</html>
