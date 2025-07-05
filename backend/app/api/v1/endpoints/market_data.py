@@ -128,7 +128,7 @@ async def get_recommendations(
                 return CoinRecommendationResponse(**cached)
         
         # 실시간 시장 데이터 가져오기 (새로운 클린 서비스 사용)
-        from app.services.real_data_service_clean import backend_real_data_service
+        from app.services.real_data_service import backend_real_data_service
         
         logger.info("실제 시장 데이터 수집 중...")
         market_data = await backend_real_data_service.get_market_data_only()
@@ -612,7 +612,7 @@ async def get_top_coins_by_volume(
         
         # 새로운 클린 서비스로 보완
         if not market_data:
-            from app.services.real_data_service_clean import backend_real_data_service
+            from app.services.real_data_service import backend_real_data_service
             logger.info("클린 데이터 서비스 사용")
             market_data = await backend_real_data_service.get_market_data_only()
             
@@ -717,7 +717,7 @@ async def get_real_top_coins(
     """
     try:
         # 새로운 클린 서비스로 실제 데이터 수집
-        from app.services.real_data_service_clean import RealDataService
+        from app.services.real_data_service import RealDataService
         
         async with RealDataService() as service:
             market_data = await service.get_market_data_only()

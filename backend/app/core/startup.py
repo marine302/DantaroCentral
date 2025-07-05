@@ -63,7 +63,7 @@ async def init_real_data_service():
     """실제 데이터 서비스 초기화"""
     try:
         # 새로운 클린 서비스 테스트
-        from app.services.real_data_service_clean import backend_real_data_service
+        from app.services.real_data_service import backend_real_data_service
         
         # 간단한 테스트 수집
         async with backend_real_data_service as service:
