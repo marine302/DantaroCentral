@@ -21,7 +21,7 @@ async def verify_volume_sorting():
     
     recommender = CoinRecommender()
     
-    exchanges = ['upbit', 'okx', 'gateio', 'bybit', 'bithumb']
+    exchanges = ['upbit', 'okx', 'gateio', 'bybit', 'bithumb', 'coinone']
     
     for exchange in exchanges:
         print(f"\n📊 {exchange.upper()} 거래소 - 거래량 정렬 검증")

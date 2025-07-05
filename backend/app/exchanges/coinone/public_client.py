@@ -57,57 +57,48 @@ class CoinonePublicClient:
             List[Dict]: 티커 정보 리스트
         """
         try:
-            # 1. 거래 가능한 마켓 조회
-            markets_data = await self._request("/public/v2/markets/KRW")
-            
-            if not markets_data or markets_data.get('result') != 'success':
-                return []
-            
-            markets = markets_data.get('markets', [])
-            if not markets:
-                return []
-            
-            # 2. 전체 티커 조회
+            # 전체 티커 조회
             tickers_data = await self._request("/public/v2/ticker_new/KRW")
             
             if not tickers_data or tickers_data.get('result') != 'success':
+                logger.error("Coinone 티커 데이터 조회 실패")
                 return []
             
             tickers = []
-            ticker_info = tickers_data.get('tickers', [])
+            ticker_list = tickers_data.get('tickers', [])
             
-            for ticker in ticker_info:
+            for ticker in ticker_list:
                 try:
                     # 코인 이름
-                    coin = ticker.get('target_currency', '')
+                    coin = ticker.get('target_currency', '').upper()
                     if not coin:
                         continue
                     
-                    # 24시간 거래량이 있는지 확인
-                    volume_24h = ticker.get('volume', '0')
-                    if not volume_24h or float(volume_24h) <= 0:
+                    # 현재 가격
+                    current_price = float(ticker.get('last', '0'))
+                    if current_price <= 0:
                         continue
                     
-                    # 가격 정보
-                    current_price = ticker.get('last', '0')
-                    if not current_price or float(current_price) <= 0:
+                    # KRW 거래량 (quote_volume이 KRW 거래량)
+                    volume_krw = float(ticker.get('quote_volume', '0'))
+                    if volume_krw <= 0:
                         continue
                     
-                    # 24시간 변화율
-                    yesterday_last = ticker.get('yesterday_last', current_price)
+                    # 코인 거래량 (target_volume이 코인 수량)
+                    volume_coin = float(ticker.get('target_volume', '0'))
+                    
+                    # 24시간 변화율 계산
+                    first_price = float(ticker.get('first', current_price))
                     try:
-                        change_percentage = ((float(current_price) - float(yesterday_last)) / float(yesterday_last)) * 100
+                        change_percentage = ((current_price - first_price) / first_price) * 100
                     except (ValueError, ZeroDivisionError):
                         change_percentage = 0.0
-                    
-                    # 거래량 계산 (KRW 기준)
-                    volume_krw = float(volume_24h) * float(current_price)
                     
                     ticker_info = {
                         'symbol': f"KRW-{coin}",
                         'coin': coin,
-                        'current_price': float(current_price),
-                        'volume_24h': float(volume_24h),
+                        'current_price': current_price,
+                        'volume_24h': volume_coin,
                         'volume_24h_krw': volume_krw,
                         'volume_24h_usdt': volume_krw / 1300,  # 대략적인 USD 환산
                         'change_24h': change_percentage,
@@ -122,7 +113,7 @@ class CoinonePublicClient:
                     logger.debug(f"Coinone 티커 파싱 오류 {coin}: {e}")
                     continue
             
-            # 거래량 기준으로 정렬
+            # KRW 거래량 기준으로 정렬
             tickers.sort(key=lambda x: x['volume_24h_krw'], reverse=True)
             
             logger.info(f"Coinone 티커 수집 완료: {len(tickers)}개")
@@ -157,26 +148,34 @@ class CoinonePublicClient:
         """
         try:
             # KRW- 제거
-            coin = symbol.replace('KRW-', '')
+            coin = symbol.replace('KRW-', '').upper()
             
             data = await self._request(f"/public/v2/ticker_new/KRW/{coin}")
             
             if not data or data.get('result') != 'success':
                 return None
             
-            ticker = data.get('tickers', [])
-            if not ticker:
+            ticker_list = data.get('tickers', [])
+            if not ticker_list:
                 return None
             
-            ticker = ticker[0]
+            ticker = ticker_list[0]
             
-            volume_24h = float(ticker.get('volume', 0))
+            # 현재 가격
             current_price = float(ticker.get('last', 0))
-            volume_krw = volume_24h * current_price
+            if current_price <= 0:
+                return None
             
-            yesterday_last = ticker.get('yesterday_last', current_price)
+            # KRW 거래량 (quote_volume이 KRW 거래량)
+            volume_krw = float(ticker.get('quote_volume', '0'))
+            
+            # 코인 거래량 (target_volume이 코인 수량)
+            volume_coin = float(ticker.get('target_volume', '0'))
+            
+            # 24시간 변화율 계산
+            first_price = float(ticker.get('first', current_price))
             try:
-                change_percentage = ((float(current_price) - float(yesterday_last)) / float(yesterday_last)) * 100
+                change_percentage = ((current_price - first_price) / first_price) * 100
             except (ValueError, ZeroDivisionError):
                 change_percentage = 0.0
             
@@ -184,7 +183,7 @@ class CoinonePublicClient:
                 'symbol': f"KRW-{coin}",
                 'coin': coin,
                 'current_price': current_price,
-                'volume_24h': volume_24h,
+                'volume_24h': volume_coin,
                 'volume_24h_krw': volume_krw,
                 'volume_24h_usdt': volume_krw / 1300,
                 'change_24h': change_percentage,
