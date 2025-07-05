@@ -4,7 +4,7 @@ API Router 통합 모듈
 """
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import market_data_light
+from app.api.v1.endpoints import market_data
 from app.api.v1.endpoints import websocket as websocket_endpoints  
 from app.api.v1.endpoints import admin
 
@@ -13,7 +13,7 @@ api_router = APIRouter()
 
 # API 엔드포인트 라우터들 포함
 api_router.include_router(
-    market_data_light.router,
+    market_data.router,
     prefix="/market-data",
     tags=["Market Data"]
 )
