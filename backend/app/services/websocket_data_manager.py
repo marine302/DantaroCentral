@@ -16,6 +16,7 @@ from app.services.gate_websocket import GateWebSocketClient
 from app.services.market_data_collector import MarketDataCollector, MarketDataPoint
 from app.database.manager import db_manager
 from app.database.redis_cache import redis_manager
+from app.core.config import settings
 
 
 @dataclass
@@ -63,8 +64,8 @@ class MultiExchangeWebSocketManager:
         self.subscribed_symbols: Dict[str, Set[str]] = {}  # exchange -> symbols
         
         # 배치 처리 설정
-        self.batch_interval = 10  # 10초마다 배치 저장
-        self.batch_size = 100  # 최대 100개씩 배치 처리
+        self.batch_interval = getattr(settings, "websocket_batch_interval", 10)  # seconds
+        self.batch_size = getattr(settings, "websocket_batch_size", 100)
         
         # 상태 관리
         self.running = False
@@ -91,9 +92,9 @@ class MultiExchangeWebSocketManager:
         if 'okx' in exchange_configs:
             config = exchange_configs['okx']
             okx_client = OKXWebSocketClient(
-                api_key=config.get('api_key'),
-                secret_key=config.get('secret_key'),
-                passphrase=config.get('passphrase')
+                api_key=config.get('api_key') or "",
+                secret_key=config.get('secret_key') or "",
+                passphrase=config.get('passphrase') or ""
             )
             
             self.websocket_clients['okx'] = okx_client

@@ -17,12 +17,12 @@ class OptimizationConfig:
     # 심볼 관리
     core_symbols: List[str]
     extended_symbols: List[str]
-    max_symbols: int = 20
+    max_symbols: int = 100  # 분석 대상 최대 코인 수 증가 (20 -> 100)
     
     # 메모리 최적화
-    max_buffer_size: int = 1000
+    max_buffer_size: int = 2000  # 버퍼 크기 증가 (1000 -> 2000)
     cleanup_interval: int = 300  # 5분
-    data_retention_minutes: int = 5
+    data_retention_minutes: int = 10  # 데이터 보존 시간 증가 (5 -> 10)
     
     # 성능 최적화
     monitoring_interval: int = 60  # 1분
@@ -50,24 +50,32 @@ class DantaroOptimizer:
     def _load_config(self) -> OptimizationConfig:
         """환경에 따른 최적화 설정 로드"""
         
-        # 핵심 심볼 (항상 모니터링)
+        # 핵심 심볼 (기본 모니터링)
         core_symbols = [
             'BTC-USDT',    # 비트코인
             'ETH-USDT',    # 이더리움
             'SOL-USDT',    # 솔라나
-            'ADA-USDT',    # 카르다노
+            'XRP-USDT',    # 리플
+            'DOGE-USDT',   # 도지코인
         ]
         
-        # 확장 심볼 (선택적 모니터링)
+        # 확장 심볼 (단타 거래에 좋은 코인들)
         extended_symbols = [
-            'DOT-USDT',    # 폴카닷
+            'SHIB-USDT',   # 시바이누
             'MATIC-USDT',  # 폴리곤
             'LINK-USDT',   # 체인링크
             'UNI-USDT',    # 유니스왑
             'AVAX-USDT',   # 아발란체
-            'ATOM-USDT',   # 코스모스
+            'LTC-USDT',    # 라이트코인
             'NEAR-USDT',   # 니어
             'FTM-USDT',    # 팬텀
+            'TRX-USDT',    # 트론
+            'ETC-USDT',    # 이더리움 클래식
+            'ICP-USDT',    # 인터넷 컴퓨터
+            'APE-USDT',    # 에이프코인
+            'FIL-USDT',    # 파일코인
+            'AXS-USDT',    # 엑시 인피니티
+            'SAND-USDT',   # 샌드박스
         ]
         
         return OptimizationConfig(
@@ -77,7 +85,7 @@ class DantaroOptimizer:
     
     def get_active_symbols(self) -> List[str]:
         """활성 심볼 목록 반환"""
-        mode = os.getenv('DANTARO_MODE', 'optimized')
+        mode = os.getenv('DANTARO_MODE', 'volume_based')  # 기본값을 volume_based로 변경
         
         if mode == 'minimal':
             # 최소 모드: BTC, ETH만
@@ -87,6 +95,10 @@ class DantaroOptimizer:
             return self.config.core_symbols
         elif mode == 'full':
             # 전체 모드: 모든 심볼
+            return self.config.core_symbols + self.config.extended_symbols
+        elif mode == 'volume_based':
+            # 거래량 기반 모드: 모든 모니터링 대상 코인
+            # 처음엔 기본 목록으로 시작하고, 이후 동적으로 업데이트됨
             return self.config.core_symbols + self.config.extended_symbols
         else:
             # 기본 최적화 모드: 핵심 + 일부 확장

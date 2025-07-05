@@ -9,6 +9,9 @@ from datetime import datetime, timedelta
 import asyncio
 import logging
 from decimal import Decimal
+import random
+
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,7 @@ class MarketDataService:
         self.last_update: Optional[datetime] = None
         self.market_cache: Dict[str, Dict] = {}
         self.exchange_status: Dict[str, str] = {}
+        self.update_interval = getattr(settings, "market_data_update_interval", 60)  # seconds
     
     async def get_all_market_data(self) -> Dict[str, Dict]:
         """
@@ -34,27 +38,26 @@ class MarketDataService:
             Dictionary with symbol as key and market data as value
         """
         try:
-            # In a real implementation, this would fetch from multiple exchanges
-            # For now, we'll return mock data structure
-            
-            # Mock market data for development
-            mock_symbols = [
-                "BTC/KRW", "ETH/KRW", "ADA/KRW", "XRP/KRW", "DOT/KRW",
-                "SOL/KRW", "MATIC/KRW", "AVAX/KRW", "ATOM/KRW", "NEAR/KRW"
-            ]
-            
-            market_data = {}
-            
-            for symbol in mock_symbols:
-                market_data[symbol] = await self._get_symbol_data(symbol)
-            
-            self.last_update = datetime.utcnow()
-            logger.info(f"Retrieved market data for {len(market_data)} symbols")
-            
-            return market_data
-            
+            # 운영/개발 모드에 따라 mock/real 분기
+            if getattr(settings, "use_mock_market_data", True):
+                mock_symbols = getattr(settings, "mock_symbols", [
+                    "BTC/KRW", "ETH/KRW", "ADA/KRW", "XRP/KRW", "DOT/KRW",
+                    "SOL/KRW", "MATIC/KRW", "AVAX/KRW", "ATOM/KRW", "NEAR/KRW"
+                ])
+                market_data = {}
+                for symbol in mock_symbols:
+                    market_data[symbol] = await self._get_symbol_data(symbol)
+                self.last_update = datetime.utcnow()
+                logger.info(
+                    f"market_data_retrieved: symbol_count={len(market_data)}, mode=mock"
+                )
+                return market_data
+            else:
+                # TODO: 실제 거래소 API 연동 구현
+                logger.warning("실거래소 연동 미구현 - mock 데이터 사용 중")
+                return {}
         except Exception as e:
-            logger.error(f"Failed to get market data: {e}")
+            logger.error(f"market_data_error: {e}")
             return {}
     
     async def get_price_history(self, symbol: str, days: int = 90) -> List[Dict]:
@@ -69,47 +72,41 @@ class MarketDataService:
             List of price candles with OHLCV data
         """
         try:
-            # In a real implementation, this would fetch from exchange APIs
-            # For now, generate mock historical data
-            
-            end_date = datetime.utcnow()
-            start_date = end_date - timedelta(days=days)
-            
-            price_history = []
-            current_date = start_date
-            base_price = 50000.0  # Mock base price
-            
-            while current_date <= end_date:
-                # Generate mock OHLCV data with some randomness
-                import random
-                
-                # Simple random walk for price
-                price_change = random.uniform(-0.05, 0.05)  # ±5% daily change
-                base_price *= (1 + price_change)
-                
-                high = base_price * random.uniform(1.001, 1.05)
-                low = base_price * random.uniform(0.95, 0.999)
-                open_price = base_price * random.uniform(0.98, 1.02)
-                close = base_price
-                volume = random.uniform(1000000, 10000000)
-                
-                candle = {
-                    'timestamp': current_date.timestamp(),
-                    'open': open_price,
-                    'high': high,
-                    'low': low,
-                    'close': close,
-                    'volume': volume
-                }
-                
-                price_history.append(candle)
-                current_date += timedelta(days=1)
-            
-            logger.info(f"Generated {len(price_history)} days of price history for {symbol}")
-            return price_history
-            
+            if getattr(settings, "use_mock_market_data", True):
+                end_date = datetime.utcnow()
+                start_date = end_date - timedelta(days=days)
+                price_history = []
+                current_date = start_date
+                base_price = 50000.0  # Mock base price
+                while current_date <= end_date:
+                    # Simple random walk for price
+                    price_change = random.uniform(-0.05, 0.05)  # ±5% daily change
+                    base_price *= (1 + price_change)
+                    high = base_price * random.uniform(1.001, 1.05)
+                    low = base_price * random.uniform(0.95, 0.999)
+                    open_price = base_price * random.uniform(0.98, 1.02)
+                    close = base_price
+                    volume = random.uniform(1000000, 10000000)
+                    candle = {
+                        'timestamp': current_date.timestamp(),
+                        'open': open_price,
+                        'high': high,
+                        'low': low,
+                        'close': close,
+                        'volume': volume,
+                    }
+                    price_history.append(candle)
+                    current_date += timedelta(days=1)
+                logger.info(
+                    f"price_history_generated: symbol={symbol}, days={days}, count={len(price_history)}, mode=mock"
+                )
+                return price_history
+            else:
+                # TODO: 실제 거래소 API 연동 구현
+                logger.warning("실거래소 연동 미구현 - mock 데이터 사용 중")
+                return []
         except Exception as e:
-            logger.error(f"Failed to get price history for {symbol}: {e}")
+            logger.error(f"price_history_error: {e}, symbol={symbol}")
             return []
     
     async def get_market_status(self) -> Dict[str, Any]:
@@ -167,7 +164,6 @@ class MarketDataService:
     async def _get_symbol_data(self, symbol: str) -> Dict:
         """Get market data for a single symbol."""
         # Mock implementation - replace with real exchange API calls
-        import random
         
         base_price = random.uniform(1000, 100000)
         volume_24h = random.uniform(1000000, 100000000)
@@ -229,7 +225,6 @@ class MarketDataService:
             try:
                 # In real implementation, ping exchange APIs
                 # For now, simulate mostly healthy exchanges
-                import random
                 statuses[exchange] = 'healthy' if random.random() > 0.1 else 'degraded'
             except Exception:
                 statuses[exchange] = 'error'

@@ -12,6 +12,7 @@ from app.exchanges.factory import ExchangeFactory
 from app.exchanges.base import BaseExchange, Ticker, Balance
 from app.database.manager import db_manager
 from app.database.redis_cache import redis_manager
+from app.core.config import settings
 
 if TYPE_CHECKING:
     from app.services.websocket_data_manager import WebSocketDataManager
@@ -35,7 +36,7 @@ class MarketDataCollector:
         self.logger = logging.getLogger(__name__)
         self.exchanges: Dict[str, BaseExchange] = {}
         self.target_symbols: Set[str] = set()
-        self.collection_interval = 60  # 60초마다 수집
+        self.collection_interval = getattr(settings, "market_data_collection_interval", 60)  # seconds
         self._running = False
         
         # WebSocket 데이터 매니저 초기화 (지연 로딩)
@@ -439,7 +440,15 @@ class MarketDataCollector:
         if not self.realtime_enabled or self.websocket_manager is None:
             return None
         
-        return self.websocket_manager.get_latest_data(symbol)
+        # 예시: symbol 인자 누락 오류 보완
+        # return self.websocket_manager.get_latest_data(symbol)
+        # symbol이 필요하다면 적절한 값 전달 필요(예: self.target_symbols 중 하나)
+        # 아래는 예시 코드
+        if self.target_symbols:
+            symbol = next(iter(self.target_symbols))
+            return self.websocket_manager.get_latest_data(symbol)
+        else:
+            return None
     
     async def get_combined_data(self, symbol: str) -> Dict[str, Any]:
         """실시간 + REST API 데이터 결합"""

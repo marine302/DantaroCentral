@@ -8,11 +8,13 @@ import asyncio
 import time
 import logging
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 from backend.app.domain.analyzers import (
     CoinAnalyzer, CoinAnalysisResult, AnalysisStrength,
     TechnicalAnalyzer, VolumeAnalyzer, VolatilityAnalyzer, RiskAnalyzer
 )
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -61,19 +63,20 @@ class CoinAnalyzer(ABC):
         Returns:
             CoinScore object with analysis results
         """
-        pass
+        raise NotImplementedError()
     
     @abstractmethod
     def get_weight(self) -> float:
         """Return the weight of this analyzer in final scoring."""
-        pass
+        raise NotImplementedError()
 
 
 class TechnicalAnalyzer(CoinAnalyzer):
     """Technical analysis implementation using various indicators."""
     
-    def __init__(self, weight: float = 0.4):
-        self.weight = weight
+    def __init__(self, weight: Optional[float] = None):
+        # settings 기반 기본값 제공
+        self.weight = weight if weight is not None else getattr(settings, "technical_analyzer_weight", 0.4)
     
     async def analyze(self, symbol: str, market_data: Dict) -> CoinScore:
         """Perform technical analysis on the coin."""
@@ -103,9 +106,8 @@ class TechnicalAnalyzer(CoinAnalyzer):
                     'bollinger_score': bollinger_score
                 }
             )
-            
         except Exception as e:
-            logger.error(f"Technical analysis failed for {symbol}: {e}")
+            logger.error(f"[TechnicalAnalyzer] 분석 실패 - symbol={symbol}, error={e}")
             return CoinScore(
                 symbol=symbol,
                 score=0,

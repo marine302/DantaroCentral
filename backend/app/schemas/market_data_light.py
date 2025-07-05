@@ -22,6 +22,12 @@ class LightCoinRecommendation(BaseModel):
     market_cap: Optional[float] = None
     analysis_details: Dict[str, Any] = Field(default_factory=dict)
     updated_at: Optional[str] = None
+    
+    # 분석 방법 명시적 필드 추가 (추가 필드는 기본 스키마에 영향을 주지 않음)
+    analysis_method: Optional[str] = Field(default="volume_based", description="The analysis method used")
+    volume_rank: Optional[int] = Field(default=None, description="Ranking by trading volume")
+    is_suitable_for_scalping: Optional[bool] = Field(default=None, description="Whether this coin is suitable for scalping")
+    liquidity_score: Optional[float] = Field(default=None, ge=0, le=1, description="Liquidity score")
 
 
 class CoinRecommendationResponse(BaseModel):
@@ -33,6 +39,11 @@ class CoinRecommendationResponse(BaseModel):
     generated_at: float = Field(..., description="Timestamp when data was generated")
     data_source: str = Field(..., description="Source of data (cache/database)")
     message: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=lambda: {
+        "analysis_method": "volume_based",
+        "features": ["volume", "volatility", "liquidity", "price_action"],
+        "purpose": "real-time scalping"
+    })
 
 
 class LightSupportLevel(BaseModel):

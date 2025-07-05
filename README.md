@@ -2,6 +2,45 @@
 
 **AI Trading Bot Platform - Central Analysis Server**
 
+---
+
+## 📑 문서/운영 안내 (2025-07-03 최신)
+
+- **API 문서(OpenAPI/Swagger):**
+  - 개발 서버 실행 후 [http://localhost:8001/docs](http://localhost:8001/docs) 접속
+  - 모든 엔드포인트/스키마/예시 응답 자동 확인 가능
+- **시스템 리팩터링/품질 관리 내역:**
+  - [`SYSTEM_REFACTORING_REPORT.md`](./SYSTEM_REFACTORING_REPORT.md) 참고
+- **테스트 자동화:**
+  - `pytest tests/`로 전체 단위/통합 테스트 실행
+  - CI/CD 연동 예시 및 커버리지 리포트는 추후 확장 가능
+
+[![CI](https://github.com/danielkwon/DantaroCentral/actions/workflows/ci.yml/badge.svg)](https://github.com/danielkwon/DantaroCentral/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/danielkwon/DantaroCentral/branch/main/graph/badge.svg?token=YOUR_CODECOV_TOKEN)](https://codecov.io/gh/danielkwon/DantaroCentral)
+
+- CI: GitHub Actions 자동 빌드/테스트 상태
+- Codecov: 테스트 커버리지 상태
+
+## 문서
+- [OpenAPI/Swagger 사용법](docs/OPENAPI_USAGE.md)
+- [모니터링/알림 가이드](docs/MONITORING_GUIDE.md)
+- [보안 강화/침투 테스트](docs/SECURITY_HARDENING.md)
+
+### 주요 환경변수/설정 예시
+
+| 변수명 | 기본값 | 설명 |
+|--------|--------|------|
+| API_V1_STR | /api/v1 | API 버전 prefix |
+| PROJECT_NAME | Dantaro Central | 프로젝트명 |
+| DATABASE_URL | postgresql://... | PostgreSQL 연결 |
+| REDIS_URL | redis://... | Redis 연결 |
+| USER_SERVER_API_KEY | (직접 입력) | 사용자 서버 인증키 |
+| RATE_LIMIT_REQUESTS | 100 | 분당 요청 제한 |
+| RATE_LIMIT_SECONDS | 60 | 제한 시간(초) |
+| ... | ... | ... |
+
+---
+
 ## 📋 프로젝트 개요
 
 Dantaro Central은 AI 트레이딩 봇 플랫폼의 **중앙 분석 서버**입니다. 

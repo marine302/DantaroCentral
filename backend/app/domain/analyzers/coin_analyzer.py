@@ -9,6 +9,7 @@ import asyncio
 from dataclasses import dataclass
 from enum import Enum
 import math
+from app.core.config import settings
 
 @dataclass
 class CoinAnalysisResult:
@@ -66,7 +67,7 @@ class TechnicalAnalyzer(CoinAnalyzer):
     
     @property
     def weight(self) -> float:
-        return 0.4  # 40% weight
+        return getattr(settings, "technical_analyzer_weight", 0.4)  # settings 기반화
     
     async def analyze(self, symbol: str, price_data: Dict) -> Dict:
         """Perform technical analysis."""
@@ -98,8 +99,8 @@ class TechnicalAnalyzer(CoinAnalyzer):
                 'macd_line': macd_line,
                 'signal_line': signal_line,
                 'macd_score': macd_score,
-                'bollinger_position': bb_position,
-                'bollinger_score': bb_score
+                'bb_position': bb_position,
+                'bb_score': bb_score
             }
             
         except Exception as e:

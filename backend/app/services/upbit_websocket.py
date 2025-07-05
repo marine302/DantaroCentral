@@ -18,6 +18,7 @@ import websockets
 from datetime import datetime
 from typing import Dict, List, Optional, Callable, Any
 from urllib.parse import urlencode
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +38,10 @@ class UpbitWebSocketClient:
         self.websocket = None
         self.running = False
         
-        # 연결 관리
+        # 연결 관리 (settings 기반, 없으면 기본값)
         self.reconnect_attempts = 0
-        self.max_reconnect_attempts = 5
-        self.reconnect_delay = 5
+        self.max_reconnect_attempts = getattr(settings, "upbit_ws_max_reconnect", 5)
+        self.reconnect_delay = getattr(settings, "upbit_ws_reconnect_delay", 5)
         
         # 구독 관리
         self.subscriptions = {}
@@ -308,30 +309,22 @@ class UpbitWebSocketClient:
 
 
 async def test_upbit_websocket():
-    """Upbit WebSocket 테스트"""
+    """Upbit WebSocket 테스트 (서비스 코드 분리 권장)"""
     async def data_handler(data):
-        print(f"Received: {data.get('type', 'unknown')} for {data.get('code', 'unknown')}")
-    
+        # print(f"Received: {data.get('type', 'unknown')} for {data.get('code', 'unknown')}")
+        pass
     client = UpbitWebSocketClient(data_handler)
-    
     try:
-        # 연결
         if await client.connect():
-            # 구독
             await client.subscribe_ticker(['KRW-BTC', 'KRW-ETH'])
-            
-            # 10초간 수신
             listen_task = asyncio.create_task(client.listen())
             await asyncio.sleep(10)
-            
-            # 정리
             await client.disconnect()
             listen_task.cancel()
-            
-            print(f"Stats: {client.get_stats()}")
-    
+            # print(f"Stats: {client.get_stats()}")
     except Exception as e:
-        print(f"Test failed: {e}")
+        # print(f"Test failed: {e}")
+        pass
 
 
 if __name__ == "__main__":

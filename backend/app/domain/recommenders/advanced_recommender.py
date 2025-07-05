@@ -13,6 +13,7 @@ from app.domain.analyzers import (
     CoinAnalyzer, CoinAnalysisResult, AnalysisStrength,
     TechnicalAnalyzer, VolumeAnalyzer, VolatilityAnalyzer, RiskAnalyzer
 )
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +42,6 @@ class CoinRecommender:
     """
     
     def __init__(self, analyzers: Optional[List[CoinAnalyzer]] = None):
-        """
-        Initialize recommender with analyzers.
-        
-        Args:
-            analyzers: List of analyzer strategies. If None, uses default set.
-        """
         if analyzers is None:
             self.analyzers = [
                 TechnicalAnalyzer(),
@@ -56,8 +51,6 @@ class CoinRecommender:
             ]
         else:
             self.analyzers = analyzers
-        
-        # Validate weights sum to approximately 1.0
         total_weight = sum(analyzer.weight for analyzer in self.analyzers)
         if abs(total_weight - 1.0) > 0.1:
             logger.warning(f"Analyzer weights sum to {total_weight}, expected ~1.0")
@@ -68,18 +61,7 @@ class CoinRecommender:
         limit: int = 50,
         min_score: float = 30.0
     ) -> List[CoinRecommendation]:
-        """
-        Get top coin recommendations based on analysis.
-        
-        Args:
-            coin_data: Dict mapping coin symbols to their market data
-            limit: Maximum number of recommendations to return
-            min_score: Minimum score threshold for recommendations
-            
-        Returns:
-            List of CoinRecommendation objects, sorted by score (highest first)
-        """
-        logger.info(f"Analyzing {len(coin_data)} coins for recommendations")
+        logger.info(f"[AdvancedRecommender] Analyzing {len(coin_data)} coins for recommendations")
         
         # Analyze all coins concurrently
         analysis_tasks = []
@@ -95,7 +77,7 @@ class CoinRecommender:
         for i, result in enumerate(analysis_results):
             if isinstance(result, Exception):
                 symbol = list(coin_data.keys())[i]
-                logger.error(f"Analysis failed for {symbol}: {result}")
+                logger.error(f"[AdvancedRecommender] Analysis failed for {symbol}: {result}")
                 continue
             
             # Ensure result is CoinAnalysisResult

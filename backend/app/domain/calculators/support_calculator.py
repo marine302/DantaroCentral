@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 import statistics
 import logging
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ class SupportLevelCalculator:
             return {}
     
     @staticmethod
-    def calculate_aggressive_support(price_history: List[Dict], days: int = 7) -> Optional[SupportLevel]:
+    def calculate_aggressive_support(price_history: List[Dict], days: Optional[int] = None) -> Optional[SupportLevel]:
         """
         Calculate aggressive support level using recent lows.
         
@@ -95,8 +96,9 @@ class SupportLevelCalculator:
         Returns:
             SupportLevel object or None if calculation fails
         """
+        if days is None:
+            days = getattr(settings, "support_aggressive_days", 7)
         try:
-            # Get recent data
             recent_data = price_history[-days:] if len(price_history) >= days else price_history
             
             if not recent_data:
@@ -137,11 +139,11 @@ class SupportLevelCalculator:
             )
             
         except Exception as e:
-            logger.error(f"Failed to calculate aggressive support: {e}")
+            logger.error(f"[SupportLevelCalculator] Aggressive support calc error: {e}")
             return None
     
     @staticmethod
-    def calculate_moderate_support(price_history: List[Dict], days: int = 30) -> Optional[SupportLevel]:
+    def calculate_moderate_support(price_history: List[Dict], days: Optional[int] = None) -> Optional[SupportLevel]:
         """
         Calculate moderate support level using multiple methods.
         
@@ -152,16 +154,17 @@ class SupportLevelCalculator:
         Returns:
             SupportLevel object or None if calculation fails
         """
+        if days is None:
+            days = getattr(settings, "support_moderate_days", 30)
         try:
-            # Get data for the specified period
-            period_data = price_history[-days:] if len(price_history) >= days else price_history
+            recent_data = price_history[-days:] if len(price_history) >= days else price_history
             
-            if len(period_data) < 7:  # Need minimum data
+            if len(recent_data) < 7:  # Need minimum data
                 return None
             
             # Extract prices
-            lows = [Decimal(str(candle.get('low', candle.get('close', 0)))) for candle in period_data]
-            closes = [Decimal(str(candle.get('close', 0))) for candle in period_data]
+            lows = [Decimal(str(candle.get('low', candle.get('close', 0)))) for candle in recent_data]
+            closes = [Decimal(str(candle.get('close', 0))) for candle in recent_data]
             
             lows = [low for low in lows if low > 0]
             closes = [close for close in closes if close > 0]
@@ -179,9 +182,9 @@ class SupportLevelCalculator:
             ma_support = Decimal(str(avg_close)) * Decimal('0.95')  # 5% below average
             
             # Method 3: Pivot point support
-            recent_high = max(candle.get('high', candle.get('close', 0)) for candle in period_data[-7:])
-            recent_low = min(candle.get('low', candle.get('close', 0)) for candle in period_data[-7:])
-            recent_close = period_data[-1].get('close', 0)
+            recent_high = max(candle.get('high', candle.get('close', 0)) for candle in recent_data[-7:])
+            recent_low = min(candle.get('low', candle.get('close', 0)) for candle in recent_data[-7:])
+            recent_close = recent_data[-1].get('close', 0)
             
             pivot = (Decimal(str(recent_high)) + Decimal(str(recent_low)) + Decimal(str(recent_close))) / 3
             pivot_support = pivot - (Decimal(str(recent_high)) - pivot)
@@ -212,11 +215,11 @@ class SupportLevelCalculator:
             )
             
         except Exception as e:
-            logger.error(f"Failed to calculate moderate support: {e}")
+            logger.error(f"[SupportLevelCalculator] Moderate support calc error: {e}")
             return None
     
     @staticmethod
-    def calculate_conservative_support(price_history: List[Dict], days: int = 90) -> Optional[SupportLevel]:
+    def calculate_conservative_support(price_history: List[Dict], days: Optional[int] = None) -> Optional[SupportLevel]:
         """
         Calculate conservative support level using long-term analysis.
         
@@ -227,15 +230,16 @@ class SupportLevelCalculator:
         Returns:
             SupportLevel object or None if calculation fails
         """
+        if days is None:
+            days = getattr(settings, "support_conservative_days", 90)
         try:
-            # Get data for the specified period
-            period_data = price_history[-days:] if len(price_history) >= days else price_history
+            recent_data = price_history[-days:] if len(price_history) >= days else price_history
             
-            if len(period_data) < 30:  # Need substantial data for conservative calculation
+            if len(recent_data) < 30:  # Need substantial data for conservative calculation
                 return None
             
             # Extract prices
-            lows = [Decimal(str(candle.get('low', candle.get('close', 0)))) for candle in period_data]
+            lows = [Decimal(str(candle.get('low', candle.get('close', 0)))) for candle in recent_data]
             lows = [low for low in lows if low > 0]
             
             if not lows:
@@ -247,11 +251,11 @@ class SupportLevelCalculator:
             long_term_support = sorted_lows[percentile_10_idx]
             
             # Method 2: Significant low detection
-            significant_lows = SupportLevelCalculator._find_significant_lows(period_data)
+            significant_lows = SupportLevelCalculator._find_significant_lows(recent_data)
             significant_support = min(significant_lows) if significant_lows else long_term_support
             
             # Method 3: Trend line support
-            trend_support = SupportLevelCalculator._calculate_trend_support(period_data)
+            trend_support = SupportLevelCalculator._calculate_trend_support(recent_data)
             
             # Conservative approach: Use the most pessimistic (lowest) value
             support_candidates = [long_term_support, significant_support]
@@ -284,7 +288,7 @@ class SupportLevelCalculator:
             )
             
         except Exception as e:
-            logger.error(f"Failed to calculate conservative support: {e}")
+            logger.error(f"[SupportLevelCalculator] Conservative support calc error: {e}")
             return None
     
     @staticmethod

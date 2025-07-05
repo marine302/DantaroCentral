@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from app.domain.analyzers import (
     TechnicalAnalyzer, VolumeAnalyzer, VolatilityAnalyzer, RiskAnalyzer
 )
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,6 @@ class CoinRecommender:
     """Enhanced coin recommendation engine."""
     
     def __init__(self):
-        """Initialize with advanced analyzers."""
         self.analyzers = [
             TechnicalAnalyzer(),
             VolumeAnalyzer(),
@@ -67,23 +67,16 @@ class CoinRecommender:
         ]
         
     async def get_recommendations(self, limit: int = 50) -> List[CoinScore]:
-        """Get coin recommendations."""
         try:
-            # Generate mock market data for testing
             market_data = self._generate_mock_data()
-            
-            # Analyze each coin
             coin_scores = []
             for symbol, data in market_data.items():
                 score = await self._analyze_coin(symbol, data)
                 coin_scores.append(score)
-            
-            # Sort by score and limit results
             coin_scores.sort(key=lambda x: x.score, reverse=True)
             return coin_scores[:limit]
-            
         except Exception as e:
-            logger.error(f"Error getting recommendations: {e}")
+            logger.error(f"[SimpleRecommender] Error getting recommendations: {e}")
             return []
     
     async def _analyze_coin(self, symbol: str, market_data: Dict) -> CoinScore:

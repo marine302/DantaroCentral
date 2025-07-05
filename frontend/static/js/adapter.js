@@ -17,10 +17,6 @@ class DantaroAdapter {
                 console.log('💰 가격 업데이트 데이터 처리');
                 return this.processRealtimeData(data);
                 
-            case 'arbitrage_opportunities':
-                console.log('🔄 차익거래 데이터 처리');
-                return data; // 서버 형식 유지
-                
             case 'kimchi_premium':
                 console.log('🇰🇷 김치 프리미엄 데이터 처리');
                 return data; // 서버 형식 유지
@@ -29,10 +25,6 @@ class DantaroAdapter {
             case 'realtime_data':
                 console.log('⚠️ 레거시: 실시간 데이터 변환');
                 return this.processRealtimeData(data);
-                
-            case 'arbitrage_data':
-                console.log('⚠️ 레거시: 차익거래 데이터 변환');
-                return this.processArbitrageData(data);
             
             case 'alert':
                 return this.processAlertData(data);
@@ -58,15 +50,19 @@ class DantaroAdapter {
     static processRealtimeData(data) {
         console.log('🔄 실시간 데이터 변환 시작:', data);
         
-        // price_update 타입인 경우 data가 exchange:symbol 키를 가진 객체
+        // price_update 타입인 경우 data가 배열 형태
         if (data.type === 'price_update') {
+            // 데이터가 이미 배열인지 확인
+            const dataArray = Array.isArray(data.data) ? data.data : Object.values(data.data);
+            
             const processedData = {
-                type: 'realtime_data',
-                data: Object.values(data.data).map(item => ({
+                type: 'price_update',  // 타입을 price_update로 유지
+                data: dataArray.map(item => ({
                     exchange: item.exchange,
                     symbol: item.symbol,
                     price: item.price,
                     volume: item.volume,
+                    change_24h: item.change_24h,
                     timestamp: item.timestamp
                 }))
             };
@@ -82,23 +78,6 @@ class DantaroAdapter {
         
         console.warn('❌ 알 수 없는 실시간 데이터 형식:', data);
         return data;  // 알 수 없는 형식은 그대로 반환
-    }
-    
-    /**
-     * 차익거래 데이터 처리
-     */
-    static processArbitrageData(data) {
-        // 서버의 'spread' 필드를 프론트엔드에서 사용하는 'spread_percentage'로 변환
-        const processedData = data.data.map(item => ({
-            ...item,
-            spread_percentage: item.spread
-        }));
-        
-        return {
-            type: "arbitrage_opportunities",
-            data: processedData,
-            timestamp: data.timestamp
-        };
     }
     
     /**

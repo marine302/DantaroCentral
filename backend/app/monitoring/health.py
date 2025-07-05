@@ -106,7 +106,13 @@ class HealthMonitor:
             
             now = datetime.utcnow()
             
+            # 실시간 배경 작업자 존재 여부 확인
+            has_market_analyzer = False
+            
             for worker_id, status in worker_statuses.items():
+                if worker_id == 'market_analyzer_main':
+                    has_market_analyzer = True
+                
                 last_heartbeat = status.get('last_heartbeat')
                 if last_heartbeat:
                     try:
@@ -117,6 +123,8 @@ class HealthMonitor:
                             active_workers.append({
                                 'worker_id': worker_id,
                                 'last_heartbeat': last_heartbeat,
+                                'is_running': status.get('is_running', False),
+                                'uptime_seconds': status.get('uptime_seconds', 0),
                                 'stats': status.get('stats', {})
                             })
                         else:
@@ -125,10 +133,28 @@ class HealthMonitor:
                                 'last_heartbeat': last_heartbeat,
                                 'time_since_heartbeat': time_diff
                             })
-                    except Exception:
+                    except Exception as e:
                         inactive_workers.append({
                             'worker_id': worker_id,
-                            'error': 'Invalid heartbeat timestamp'
+                            'error': f'Invalid heartbeat timestamp: {str(e)}'
+                        })
+            
+            # 시장 분석기가 없으면 기본 분석기 상태 확인
+            if not has_market_analyzer:
+                self.logger.warning("No market_analyzer_main worker found in Redis. Checking for background task...")
+                import asyncio
+                import inspect
+                from app.main import app
+                
+                # FastAPI 앱의 상태에서 백그라운드 태스크 확인
+                if hasattr(app, 'state') and hasattr(app.state, 'background_task'):
+                    task = app.state.background_task
+                    if task and not task.done() and not task.cancelled():
+                        self.logger.info("Found active background task in app.state")
+                        active_workers.append({
+                            'worker_id': 'background_task_from_state',
+                            'last_heartbeat': datetime.utcnow().isoformat(),
+                            'is_running': True
                         })
             
             status = 'healthy'
@@ -139,8 +165,9 @@ class HealthMonitor:
             
             return {
                 'status': status,
-                'active_workers': len(active_workers),
-                'inactive_workers': len(inactive_workers),
+                'active_count': len(active_workers),
+                'inactive_count': len(inactive_workers),
+                'status': f"{len(active_workers)} active workers",
                 'workers': active_workers,
                 'last_check': datetime.utcnow().isoformat()
             }

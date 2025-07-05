@@ -147,6 +147,62 @@ class DashboardDataService:
         return symbols_by_exchange
 
 
+class VolumeRecommendationAPI:
+    """대시보드용 볼륨 기반 추천 API"""
+    
+    @staticmethod
+    async def get_volume_recommendations():
+        """대시보드용 볼륨 기반 추천 데이터"""
+        try:
+            import aiohttp
+            # 내부 API 호출
+            async with aiohttp.ClientSession() as session:
+                headers = {"X-API-Key": "test-api-key-for-enterprise-servers"}
+                
+                # 추천 데이터 가져오기
+                async with session.get("http://localhost:8001/api/v1/recommendations", headers=headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        recommendations = data.get('recommendations', [])
+                        
+                        # 대시보드 형식으로 변환
+                        dashboard_data = []
+                        for rec in recommendations[:10]:  # 상위 10개만
+                            dashboard_data.append({
+                                "symbol": rec.get("symbol", ""),
+                                "score": rec.get("total_score", 0),
+                                "volume_score": rec.get("volume_score", 0),
+                                "volatility_score": rec.get("volatility_score", 0),
+                                "price": rec.get("current_price", 0),
+                                "change_24h": rec.get("price_change_24h", 0),
+                                "volume_24h": rec.get("volume_24h", 0),
+                                "strength": rec.get("recommendation_strength", ""),
+                                "analysis_method": rec.get("analysis_details", {}).get("analysis_method", "volume_based")
+                            })
+                        
+                        return {
+                            "success": True,
+                            "recommendations": dashboard_data,
+                            "metadata": data.get("metadata", {}),
+                            "timestamp": datetime.now().isoformat()
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "error": f"API 호출 실패: {response.status}",
+                            "recommendations": [],
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "recommendations": [],
+                "timestamp": datetime.now().isoformat()
+            }
+
+
 async def main():
     """메인 실행 함수"""
     service = DashboardDataService()
