@@ -4,13 +4,12 @@
 
 ---
 
-## 📑 문서/운영 안내 (2025-07-03 최신)
+## 📑 문서/운영 안내 (2025-01-03 최신)
 
 - **API 문서(OpenAPI/Swagger):**
   - 개발 서버 실행 후 [http://localhost:8001/docs](http://localhost:8001/docs) 접속
   - 모든 엔드포인트/스키마/예시 응답 자동 확인 가능
-- **시스템 리팩터링/품질 관리 내역:**
-  - [`SYSTEM_REFACTORING_REPORT.md`](./SYSTEM_REFACTORING_REPORT.md) 참고
+- **종합 문서:** [📚 **docs/** 디렉터리](./docs/) - 체계적으로 정리된 모든 문서
 - **테스트 자동화:**
   - `pytest tests/`로 전체 단위/통합 테스트 실행
   - CI/CD 연동 예시 및 커버리지 리포트는 추후 확장 가능
@@ -18,26 +17,52 @@
 [![CI](https://github.com/danielkwon/DantaroCentral/actions/workflows/ci.yml/badge.svg)](https://github.com/danielkwon/DantaroCentral/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/danielkwon/DantaroCentral/branch/main/graph/badge.svg?token=YOUR_CODECOV_TOKEN)](https://codecov.io/gh/danielkwon/DantaroCentral)
 
-- CI: GitHub Actions 자동 빌드/테스트 상태
-- Codecov: 테스트 커버리지 상태
+## 📚 문서 구조
 
-## 문서
-- [OpenAPI/Swagger 사용법](docs/OPENAPI_USAGE.md)
-- [모니터링/알림 가이드](docs/MONITORING_GUIDE.md)
-- [보안 강화/침투 테스트](docs/SECURITY_HARDENING.md)
+### 빠른 시작
+- [📖 Enterprise 가이드](./docs/guides/DANTARO_ENTERPRISE_GUIDE.md) - 사용자 서버 설정
+- [🔧 설치 가이드](./docs/guides/ENTERPRISE_SETUP_GUIDE.md) - 시스템 설치
+- [🔑 API 키 설정](./docs/guides/api-key-setup-guide.md) - 인증 설정
+
+### 개발자용
+- [🏗️ 아키텍처 가이드](./docs/architecture/) - 시스템 구조
+- [🧪 테스트 가이드](./docs/testing/) - 테스트 방법
+- [🚀 배포 가이드](./docs/deployment/) - 프로덕션 배포
+
+### 운영자용  
+- [📊 모니터링 가이드](./docs/monitoring/) - 시스템 모니터링
+- [🔒 보안 가이드](./docs/security/) - 보안 체크리스트
+- [📈 성능 최적화](./docs/monitoring/PERFORMANCE_GUIDE.md) - 성능 튜닝
+
+### 프로젝트 현황
+- [📊 프로젝트 리포트](./docs/reports/) - 현재 상태 및 진행사항
+- [🗺️ 로드맵](./docs/roadmap/) - 개발 계획
 
 ### 주요 환경변수/설정 예시
 
 | 변수명 | 기본값 | 설명 |
 |--------|--------|------|
+| **API 설정** |
 | API_V1_STR | /api/v1 | API 버전 prefix |
 | PROJECT_NAME | Dantaro Central | 프로젝트명 |
-| DATABASE_URL | postgresql://... | PostgreSQL 연결 |
-| REDIS_URL | redis://... | Redis 연결 |
-| USER_SERVER_API_KEY | (직접 입력) | 사용자 서버 인증키 |
+| ENVIRONMENT | development | 실행 환경 (development/production) |
+| **데이터베이스** |
+| DATABASE_URL | sqlite:///./dantaro_central.db | 데이터베이스 연결 |
+| REDIS_URL | redis://localhost:6379/0 | Redis 연결 |
+| **보안** |
+| SECRET_KEY | (보안키 필요) | JWT 토큰 서명키 |
+| USER_SERVER_API_KEY | (인증키 필요) | 사용자 서버 인증키 |
+| **거래소 API** |
+| BINANCE_API_KEY | (선택사항) | 바이낸스 API 키 |
+| UPBIT_ACCESS_KEY | (선택사항) | 업비트 액세스 키 |
+| OKX_API_KEY | (선택사항) | OKX API 키 |
+| **시스템 설정** |
 | RATE_LIMIT_REQUESTS | 100 | 분당 요청 제한 |
 | RATE_LIMIT_SECONDS | 60 | 제한 시간(초) |
-| ... | ... | ... |
+| MARKET_ANALYSIS_INTERVAL | 30 | 시장 분석 주기(초) |
+| TOP_RECOMMENDATIONS_COUNT | 50 | 상위 추천 코인 수 |
+
+> 📋 **설정 가이드**: [환경변수 상세 설정](./docs/guides/SETTINGS_REFERENCE.md)
 
 ---
 
