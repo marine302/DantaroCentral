@@ -12,8 +12,8 @@ import os
 frontend_router = APIRouter()
 
 # 템플릿 설정
-templates_dir = os.path.join(os.path.dirname(__file__), "../../frontend/templates")
-static_dir = os.path.join(os.path.dirname(__file__), "../../frontend/static")
+templates_dir = os.path.join(os.path.dirname(__file__), "../../../frontend/templates")
+static_dir = os.path.join(os.path.dirname(__file__), "../../../frontend/static")
 
 if os.path.exists(templates_dir):
     templates = Jinja2Templates(directory=templates_dir)
