@@ -134,3 +134,4 @@ api_test.py
 # IPython
 profile_default/
 ipython_config.py
+.pytest_cache/
