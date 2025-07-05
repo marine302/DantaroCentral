@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dantaro Central - 김치 프리미엄 & 차익거래</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <style>
+        .arbitrage-card {
+            border-left: 4px solid #17a2b8;
+            transition: all 0.3s ease;
+        }
+        .arbitrage-card:hover {
+            background-color: #495057 !important;
+            transform: translateY(-2px);
+        }
+        .profit-high { border-left-color: #28a745; }
+        .profit-medium { border-left-color: #ffc107; }
+        .profit-low { border-left-color: #dc3545; }
+        .profit-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.9rem;
+        }
+        .exchange-box {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .buy-exchange { border: 2px solid #28a745; }
+        .sell-exchange { border: 2px solid #dc3545; }
+        .arbitrage-flow .fas { font-size: 1.5rem; }
+        .exchange-price { font-family: 'Courier New', monospace; }
+        .risk-info { 
+            background: rgba(255, 193, 7, 0.1);
+            border-radius: 5px;
+            padding: 8px;
+        }
+        .opportunity-actions .btn { margin-right: 5px; }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <!-- 헤더 -->
+    <nav class="navbar navbar-dark bg-primary sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Dantaro Central
+            </a>
+            <div class="navbar-nav d-flex flex-row">
+                <a class="nav-link me-3" href="/"><i class="fas fa-home"></i> 대시보드</a>
+                <a class="nav-link me-3" href="/markets"><i class="fas fa-coins"></i> 시세</a>
+                <a class="nav-link me-3" href="/recommendations"><i class="fas fa-star"></i> 추천</a>
+                <a class="nav-link active" href="/arbitrage"><i class="fas fa-flag"></i> 차익거래</a>
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-success me-3" id="connection-status">
+                    <i class="fas fa-wifi"></i> 연결 중...
+                </span>
+                <span class="text-light" id="last-update">업데이트 대기 중</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <!-- 상단 요약 정보 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-success text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-chart-line"></i> 고수익 기회</h5>
+                                <h2 id="high-profit-count">0</h2>
+                                <small>3% 이상 차익</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-balance-scale"></i> 보통 기회</h5>
+                                <h2 id="medium-profit-count">0</h2>
+                                <small>1-3% 차익</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-flag"></i> 국내 거래소</h5>
+                                <h2 id="domestic-count">0</h2>
+                                <small>Upbit-Coinone</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-light">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-coins"></i> 총 기회</h5>
+                                <h2 id="total-opportunities">0</h2>
+                                <small>차익거래 대상</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 필터 및 정렬 -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-light active" data-filter="all">
+                        <i class="fas fa-list"></i> 전체
+                    </button>
+                    <button type="button" class="btn btn-outline-success" data-filter="high-profit">
+                        <i class="fas fa-arrow-up"></i> 고수익 (3%+)
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" data-filter="medium-profit">
+                        <i class="fas fa-minus"></i> 보통 (1-3%)
+                    </button>
+                    <button type="button" class="btn btn-outline-info" data-filter="domestic">
+                        <i class="fas fa-flag"></i> 국내거래소
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" data-filter="international">
+                        <i class="fas fa-globe"></i> 해외거래소
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-light active" data-sort="profit">
+                        <i class="fas fa-sort-amount-down"></i> 수익률순
+                    </button>
+                    <button type="button" class="btn btn-outline-light" data-sort="volume">
+                        <i class="fas fa-chart-bar"></i> 거래량순
+                    </button>
+                    <button type="button" class="btn btn-outline-light" data-sort="amount">
+                        <i class="fas fa-dollar-sign"></i> 금액순
+                    </button>
+                    <button type="button" class="btn btn-outline-light" id="refresh-arbitrage">
+                        <i class="fas fa-sync"></i> 새로고침
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 차익거래 기회 목록 -->
+        <div class="row" id="arbitrage-container">
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                <h5>차익거래 기회 분석 중...</h5>
+                <p class="text-muted">잠시만 기다려주세요.</p>
+            </div>
+        </div>
+
+        <!-- 김치 프리미엄 상세 정보 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-flag text-warning"></i> 김치 프리미엄 상세</h5>
+                        <small id="kimchi-update-time">업데이트 대기 중</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>코인</th>
+                                        <th class="text-end">해외 가격 (USD)</th>
+                                        <th class="text-end">국내 가격 (KRW)</th>
+                                        <th class="text-end">환율 적용 가격</th>
+                                        <th class="text-center">프리미엄 (%)</th>
+                                        <th class="text-center">상태</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kimchi-premium-table">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin"></i> 김치 프리미엄 계산 중...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 차익거래 가이드 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card bg-secondary text-light">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> 차익거래 가이드</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-lightbulb text-warning"></i> 기본 전략</h6>
+                                <ul>
+                                    <li>가격 차이가 큰 거래소 간 매매</li>
+                                    <li>거래량이 충분한 코인 선택</li>
+                                    <li>송금 수수료 및 시간 고려</li>
+                                    <li>변동성 위험 관리</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-exclamation-triangle text-danger"></i> 주의사항</h6>
+                                <ul>
+                                    <li>송금 지연으로 인한 가격 변동 위험</li>
+                                    <li>거래소별 입출금 제한 확인</li>
+                                    <li>세금 및 법적 고려사항</li>
+                                    <li>실제 거래 전 소액 테스트 권장</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Arbitrage JS -->
+    <script src="/static/js/arbitrage.js"></script>
+    
+    <script>
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            window.arbitrageApp = new ArbitrageApp();
+        });
+
+        function sortBy(criteria) {
+            if (window.arbitrageApp) {
+                window.arbitrageApp.sortBy(criteria);
+            }
+        }
+
+        function refreshArbitrage() {
+            if (window.arbitrageApp) {
+                window.arbitrageApp.refreshData();
+            }
+        }
+
+        function exportArbitrage() {
+            if (window.arbitrageApp) {
+                window.arbitrageApp.exportToCSV();
+            }
+        }
+    </script>
+</body>
+</html>
