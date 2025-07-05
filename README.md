@@ -19,24 +19,19 @@
 
 ## 📚 문서 구조
 
-### 빠른 시작
-- [📖 Enterprise 가이드](./docs/guides/DANTARO_ENTERPRISE_GUIDE.md) - 사용자 서버 설정
-- [🔧 설치 가이드](./docs/guides/ENTERPRISE_SETUP_GUIDE.md) - 시스템 설치
-- [🔑 API 키 설정](./docs/guides/api-key-setup-guide.md) - 인증 설정
+### 개발자용 (Essential)
+- [� 데이터베이스 스키마](./docs/development/database-schema.md) - DB 테이블 구조
+- [⚙️ 환경설정](./docs/development/environment-config.md) - 환경변수 전체 목록
+- [🔑 API 키 설정](./docs/development/api-key-setup.md) - 거래소 API 연동
 
-### 개발자용
-- [🏗️ 아키텍처 가이드](./docs/architecture/) - 시스템 구조
-- [🧪 테스트 가이드](./docs/testing/) - 테스트 방법
-- [🚀 배포 가이드](./docs/deployment/) - 프로덕션 배포
+### 배포/운영용
+- [🚀 프로덕션 배포](./docs/deployment/production-setup.md) - 실제 배포 가이드
+- [🏗️ 아키텍처](./docs/architecture/clean-architecture.md) - 시스템 전체 구조  
+- [🔒 보안 체크리스트](./docs/security/security-checklist.md) - 보안 확인사항
 
-### 운영자용  
-- [📊 모니터링 가이드](./docs/monitoring/) - 시스템 모니터링
-- [🔒 보안 가이드](./docs/security/) - 보안 체크리스트
-- [📈 성능 최적화](./docs/monitoring/PERFORMANCE_GUIDE.md) - 성능 튜닝
-
-### 프로젝트 현황
-- [📊 프로젝트 리포트](./docs/reports/) - 현재 상태 및 진행사항
-- [🗺️ 로드맵](./docs/roadmap/) - 개발 계획
+### 📚 전체 문서
+- [� **docs/** 디렉터리](./docs/) - 정리된 핵심 문서 (6개)
+- [� **docs_archive/**](./docs_archive/) - 참고용 보관 문서 (2개)
 
 ### 주요 환경변수/설정 예시
 
