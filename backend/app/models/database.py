@@ -148,7 +148,7 @@ class CacheMetadata(Base):
     cache_type = Column(String(50), nullable=False, index=True)  # redis, database
     
     # 데이터 정보
-    data_source = Column(String(100))  # 데이터 소스 (upbit, binance, etc.)
+    data_source = Column(String(100))  # 데이터 소스 (upbit, okx, gate.io 등)
     last_updated = Column(DateTime(timezone=True), nullable=False, index=True)
     expires_at = Column(DateTime(timezone=True), index=True)
     

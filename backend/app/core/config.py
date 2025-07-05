@@ -32,8 +32,6 @@ class Settings(BaseSettings):
     # External Exchange APIs
     coinbase_api_key: Optional[str] = None
     coinbase_api_secret: Optional[str] = None
-    binance_api_key: Optional[str] = None
-    binance_api_secret: Optional[str] = None
     upbit_access_key: Optional[str] = None
     upbit_secret_key: Optional[str] = None
     bithumb_api_key: Optional[str] = None

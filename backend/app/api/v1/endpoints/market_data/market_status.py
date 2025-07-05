@@ -85,7 +85,6 @@ async def get_market_status() -> MarketStatusResponse:
             cache='healthy',
             exchanges={
                 'upbit': 'healthy' if real_market_data else 'degraded',
-                'binance': 'unavailable',
                 'bithumb': 'unavailable'
             },
             analysis_engine='healthy'
