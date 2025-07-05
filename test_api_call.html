@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API 테스트</title>
+</head>
+<body>
+    <h1>API 호출 테스트</h1>
+    <div id="result"></div>
+    
+    <script>
+        async function testAPI() {
+            try {
+                console.log('API 호출 시작...');
+                const response = await fetch('/api/v1/top-coins-by-volume?top_n=10');
+                console.log('응답 상태:', response.status, response.statusText);
+                
+                const result = await response.json();
+                console.log('응답 데이터:', result);
+                
+                document.getElementById('result').innerHTML = `
+                    <h2>응답 성공!</h2>
+                    <p>상태: ${response.status}</p>
+                    <p>데이터 수: ${result.data?.top_coins?.length || 0}</p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+                
+                // markets.js와 같은 변환 테스트
+                if (result.success && result.data && result.data.top_coins) {
+                    const marketData = {};
+                    result.data.top_coins.forEach(coin => {
+                        const key = `${coin.exchange}_${coin.full_symbol}`;
+                        marketData[key] = {
+                            symbol: coin.full_symbol,
+                            exchange: coin.exchange,
+                            price: coin.current_price,
+                            volume_24h: coin.volume_24h,
+                            change_24h: coin.change_24h,
+                            currency: coin.currency,
+                            timestamp: coin.timestamp,
+                            is_recommended: coin.is_recommended,
+                            recommendation_score: coin.recommendation_score,
+                            support_level: coin.support_level,
+                            resistance_level: coin.resistance_level
+                        };
+                    });
+                    
+                    console.log('변환된 시장 데이터:', marketData);
+                    document.getElementById('result').innerHTML += `
+                        <h3>변환된 데이터:</h3>
+                        <pre>${JSON.stringify(marketData, null, 2)}</pre>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('API 호출 오류:', error);
+                document.getElementById('result').innerHTML = `
+                    <h2>오류 발생!</h2>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+        
+        // 페이지 로드 시 실행
+        window.onload = testAPI;
+    </script>
+</body>
+</html>
