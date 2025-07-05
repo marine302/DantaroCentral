@@ -26,6 +26,9 @@ async def startup_services():
     # 4. 실제 데이터 서비스 초기화
     await init_real_data_service()
     
+    # 5. 코인 추천 시스템 초기화
+    await init_coin_recommender()
+    
     logger.info("✅ 모든 서비스 초기화 완료")
 
 
@@ -74,14 +77,18 @@ async def init_real_data_service():
         
     except Exception as e:
         logger.warning(f"⚠️ 실제 데이터 서비스 초기화 실패: {e}")
-        
 
-# 백그라운드 작업 시작 (선택사항)
-async def start_background_tasks():
-    """백그라운드 작업들 시작"""
+
+async def init_coin_recommender():
+    """코인 추천 시스템 초기화"""
     try:
-        # 실시간 데이터 수집 등의 백그라운드 작업
-        logger.info("🔄 백그라운드 작업 시작")
-        # 여기에 필요한 백그라운드 작업들 추가
+        from app.domain.recommenders.coin_recommender import coin_recommender
+        
+        # 백그라운드 태스크로 추천 데이터 갱신 시작
+        asyncio.create_task(coin_recommender.start_background_update())
+        
+        logger.info("✅ 코인 추천 시스템 초기화 완료 (백그라운드 갱신 시작)")
+        
     except Exception as e:
-        logger.error(f"❌ 백그라운드 작업 시작 실패: {e}")
+        logger.warning(f"⚠️ 코인 추천 시스템 초기화 실패: {e}")
+

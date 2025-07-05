@@ -10,14 +10,11 @@ import time
 from datetime import datetime
 
 from app.core.config import settings
-from app.domain.recommenders.simple_recommender import CoinRecommender
-from app.domain.recommenders.volume_recommender import VolumeBasedRecommender
-from app.services.simple_recommender import SimpleVolumeRecommender
+from app.domain.recommenders.coin_recommender import CoinRecommender
 from app.schemas.market_data import (
     CoinRecommendationResponse,
     CoinRecommendation
 )
-from app.services.real_market_service import RealMarketDataService
 from app.services.cache_service import CacheService
 
 logger = logging.getLogger(__name__)
@@ -26,11 +23,8 @@ router = APIRouter()
 security = HTTPBearer()
 
 # Initialize services
-real_market_service = RealMarketDataService()
 cache_service = CacheService()
 coin_recommender = CoinRecommender()
-volume_recommender = VolumeBasedRecommender()
-simple_recommender = SimpleVolumeRecommender()
 
 
 async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)) -> bool:

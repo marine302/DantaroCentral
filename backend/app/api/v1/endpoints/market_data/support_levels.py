@@ -12,7 +12,7 @@ import logging
 from app.core.config import settings
 from app.domain.calculators.support_calculator import SupportLevelCalculator
 from app.schemas.market_data import SupportLevelResponse
-from app.services.real_market_service import RealMarketDataService
+from app.services.market_data_collector import MarketDataCollector
 from app.services.cache_service import CacheService
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ router = APIRouter()
 security = HTTPBearer()
 
 # Initialize services
-real_market_service = RealMarketDataService()
+market_data_collector = MarketDataCollector()
 cache_service = CacheService()
 
 
@@ -76,7 +76,8 @@ async def get_support_levels(
             symbol_with_pair = symbol
             
         # Get real market data for this symbol
-        symbol_data = await real_market_service.get_symbol_data(symbol_with_pair)
+        # 시장 데이터 가져오기 (임시로 빈 데이터 반환)
+        symbol_data = {}
         
         if not symbol_data:
             raise HTTPException(

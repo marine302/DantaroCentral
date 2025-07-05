@@ -10,10 +10,6 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional, Set, Callable, Any
 
-from app.services.okx_websocket import OKXWebSocketClient, WebSocketMessage
-from app.services.upbit_websocket import UpbitWebSocketClient
-from app.services.coinone_websocket import CoinoneWebSocketClient
-from app.services.gate_websocket import GateWebSocketClient
 from app.services.market_data_collector import MarketDataCollector, MarketDataPoint
 from app.database.manager import db_manager
 from app.database.redis_cache import redis_manager

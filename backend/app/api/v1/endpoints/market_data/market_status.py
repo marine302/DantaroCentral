@@ -11,7 +11,7 @@ import logging
 
 from app.core.config import settings
 from app.schemas.market_data import MarketStatusResponse, SystemHealth
-from app.services.real_market_service import RealMarketDataService
+from app.services.market_data_collector import MarketDataCollector
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ router = APIRouter()
 security = HTTPBearer()
 
 # Initialize services
-real_market_service = RealMarketDataService()
+market_data_collector = MarketDataCollector()
 
 
 async def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)) -> bool:
@@ -51,7 +51,8 @@ async def get_market_status() -> MarketStatusResponse:
     """
     try:
         # Get real market data status
-        real_market_data = await real_market_service.get_market_data()
+        # 실시간 시장 데이터 가져오기 (임시로 빈 데이터 반환)
+        real_market_data = {}
         
         # Calculate real market indicators
         total_symbols = len(real_market_data)
